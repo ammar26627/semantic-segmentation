@@ -1,0 +1,45 @@
+from mask import ImageMask
+from scipy.spatial.distance import mahalanobis
+import numpy as np
+from collections import defaultdict
+
+class Models(ImageMask):
+    def __init__(self) -> None:
+        super().__init__()
+        self.colored_mask = defaultdict()
+        self.binary_masks = defaultdict()
+
+    def getColoredMask(self):
+        if self.model == 'mahalanobis':
+            self.mahalanobis()
+        elif self.model == 'maximum likelyhood':
+            pass
+        elif self.model == 'random forest':
+            pass
+        else:
+            pass
+        return self.colored_mask
+
+    
+    def mahalanobis(self):
+        def classify_pixel(pixel, means, cov, thresholds):
+            distances = {}
+            for i, key in enumerate(means, 1):
+                inv_cov = np.linalg.inv(cov[key])
+                distance = mahalanobis(pixel, means[key], inv_cov)
+                if distance < thresholds[key]:
+                    distances[i] = distance
+            return min(distances, key=distances.get) if distances else 0
+
+        classified_pixels = np.zeros(self.img_array.shape[:2], dtype=np.int32)
+        for i in range(self.img_array.shape[0]):
+            for j in range(self.img_array.shape[1]):
+                pixel = self.img_array[i, j]
+                classified_pixels[i, j] = classify_pixel(pixel, self.means, self.cov, self.thresholds)
+        self.colorMask(classified_pixels)
+    
+    def colorMask(self, classified_pixels):
+        for key, value in self.features.itmes():
+            mask = np.zeros((classified_pixels.shape[0], classified_pixels.shape[1], 3), dtype=np.uint8)
+            mask[classified_pixels == value] = self.color_map.get(key, self.color_map[None])
+            self.colored_mask[key] = mask
