@@ -21,13 +21,13 @@ class GeeImage():
     
     def getImage(self):
         roi = ee.Geometry.Polygon([self.roi])
-        self.sentinel_image = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED') \
+        self.sentinal_image = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED') \
         .filterBounds(roi) \
         .filterDate('2023-01-01', '2023-01-31') \
         .sort('CLOUDY_PIXEL_PERCENTAGE') \
         .first() \
         .select(self.bands)
-        image_clipped = self.sentinel_image.clip(roi)
+        image_clipped = self.sentinal_image.clip(roi)
         self.img_array = geemap.ee_to_numpy(image_clipped, region=roi, bands=self.bands, scale=10)
         self.normalized_image = (self.img_array - np.min(self.img_array)) / (np.max(self.img_array) - np.min(self.img_array))
 
@@ -43,7 +43,7 @@ class GeeImage():
     @classmethod
     def initialize_earth_engine(cls):
         try:
-            ee.Initialize()
+            ee.Initialize(project='fet-image-segmentation')
         except ee.EEException:
             ee.Authenticate()
-            ee.Initialize()
+            ee.Initialize(project='fet-image-segmentation')

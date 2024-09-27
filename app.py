@@ -16,7 +16,6 @@ CORS(app)
 @app.route('/get_gee_image', methods=['POST'])
 def geeImage():
     roi_data = request.json
-    print(roi_data)
     model.setRoiData(roi_data)
     model.getImage()
     image = model.getNormalizedImage()
@@ -35,6 +34,10 @@ def generateMask():
         base_64 =  base64.b64encode(png_mask.getvalue()).decode('utf-8')
         response[key] = [base_64, area]
     return jsonify(response)
+
+@app.route('/')
+def home():
+    return "Ammar you are beautiful"
     
     
 if __name__ == "__main__":

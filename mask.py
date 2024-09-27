@@ -14,6 +14,8 @@ class ImageMask(GeeImage):
         self.mean = defaultdict(list)
         self.cov = defaultdict(list)
         self.threshold = None
+        self.X_train = None
+        self.y_train = None
 
     def setClassData(self, data):
         for i, element in enumerate(data['geojson'], 1):
@@ -22,11 +24,13 @@ class ImageMask(GeeImage):
             self.color_map[i] = self.hexToRgb(element[0]['properties']['fill'])
         self.model = data['model']
         self.threshold = data['thresholds']
+        self.mask()
 
     def mask(self):
-        ee_geometry = defaultdict[list]
+        ee_geometry = defaultdict(list)
         for key, value in self.features_geometries.items():
-            ee_geometry[key].append(ee.Geometry.Polygon([value]))
+            print(value)
+            ee_geometry[key].append(ee.Geometry.Polygon([value][0]))
 
         all_geometries = []
         for value in ee_geometry.values():
@@ -35,22 +39,29 @@ class ImageMask(GeeImage):
         combine_ee_geometry = all_geometries[0]
         for element in all_geometries[1:]:
             combine_ee_geometry = combine_ee_geometry.union(element)
-        self.feature_image = self.sentinel_image.clip(combine_ee_geometry)
+        self.feature_image = self.sentinal_image.clip(combine_ee_geometry)
 
-        for key in self.features:
-            for element in self.features_geometries[key]:
-                self.pixels[key].append(self.sample_region(element))
+        training_pixels = []
+        training_lables = []
+        for key, value in self.features.items():
+            for element in ee_geometry[key]:
+                pixel_value, class_value = self.sample_region(element, value)
+                self.pixels[key].append(pixel_value)
+                training_pixels.append(pixel_value)
+                training_lables.append(class_value)
             self.pixels[key] = np.vstack(self.pixels[key])
             self.mean[key] = np.mean(self.pixels[key], axis=0)
             self.cov[key] = np.cov(self.pixels[key],  rowvar=False)
+        self.X_train = np.vstack(training_pixels)
+        self.y_train = np.hstack(training_lables)   
 
     
 
-    def sample_region(self, region):
+    def sample_region(self, region, class_label):
         sampled = self.feature_image.sample(region=region, scale=self.scale, numPixels=500)
         pixels = sampled.select(self.bands).getInfo()
         values = [x['properties'] for x in pixels['features']]
-        return np.array([[x[b] for b in self.bands] for x in values])
+        return np.array([[x[b] for b in self.bands] for x in values]),  np.array([class_label] * len(values))
     
     @classmethod
     def hexToRgb(cls, hex):
