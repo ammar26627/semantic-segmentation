@@ -35,11 +35,11 @@ class Models(ImageMask):
         for i in range(self.img_array.shape[0]):
             for j in range(self.img_array.shape[1]):
                 pixel = self.img_array[i, j]
-                classified_pixels[i, j] = classify_pixel(pixel, self.means, self.cov, self.thresholds)
+                classified_pixels[i, j] = classify_pixel(pixel, self.mean, self.cov, self.threshold)
         self.colorMask(classified_pixels)
     
     def colorMask(self, classified_pixels):
-        for key, value in self.features.itmes():
+        for key, value in self.features.items():
             mask = np.zeros((classified_pixels.shape[0], classified_pixels.shape[1], 3), dtype=np.uint8)
             mask[classified_pixels == value] = self.color_map.get(key, self.color_map[None])
             self.colored_mask[key] = mask

@@ -16,7 +16,9 @@ CORS(app)
 @app.route('/get_gee_image', methods=['POST'])
 def geeImage():
     roi_data = request.json
+    print(roi_data)
     model.setRoiData(roi_data)
+    model.getImage()
     image = model.getNormalizedImage()
     image_png = preprocess(image, False)
     return send_file(image_png, mimetype='image/png')
@@ -27,10 +29,10 @@ def generateMask():
     model.setClassData(class_data)
     colored_mask_pngs = model.getColoredMask()
     response = defaultdict()
-    for key, value in colored_mask_pngs:
+    for key, value in colored_mask_pngs.items():
         area = get_area(value, model.scale)
-        png_mask = preprocess(value, False)
-        base_64 =  base64.b64encode(png_mask).decode('utf-8')
+        png_mask = preprocess(value, True)
+        base_64 =  base64.b64encode(png_mask.getvalue()).decode('utf-8')
         response[key] = [base_64, area]
     return jsonify(response)
     

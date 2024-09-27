@@ -1,6 +1,7 @@
 import ee, numpy as np
 from gee_image import GeeImage
 from collections import defaultdict
+
 class ImageMask(GeeImage):
     def __init__(self) -> None:
         super().__init__()
@@ -16,11 +17,11 @@ class ImageMask(GeeImage):
 
     def setClassData(self, data):
         for i, element in enumerate(data['geojson'], 1):
-            self.features_geometries[element['properties']['class']].append(element['geometry']['coordinates'][0])
-            self.features[element['properties']['class']] = i
-            self.color_map[i] = self.hexToRgb(element['properties']['fill'])
+            self.features_geometries[element[0]['properties']['class']].append(element[0]['geometry']['coordinates'][0])
+            self.features[element[0]['properties']['class']] = i
+            self.color_map[i] = self.hexToRgb(element[0]['properties']['fill'])
         self.model = data['model']
-        self.threshold = data['threshold']
+        self.threshold = data['thresholds']
 
     def mask(self):
         ee_geometry = defaultdict[list]
@@ -40,7 +41,7 @@ class ImageMask(GeeImage):
             for element in self.features_geometries[key]:
                 self.pixels[key].append(self.sample_region(element))
             self.pixels[key] = np.vstack(self.pixels[key])
-            self.means[key] = np.mean(self.pixels[key], axis=0)
+            self.mean[key] = np.mean(self.pixels[key], axis=0)
             self.cov[key] = np.cov(self.pixels[key],  rowvar=False)
 
     
