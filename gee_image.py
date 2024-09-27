@@ -43,7 +43,7 @@ class GeeImage():
     @classmethod
     def initialize_earth_engine(cls):
         try:
-            ee.Initialize(project='fet-image-segmentation')
+            ee.Initialize(project='ee-rohitcodes03-1')
         except ee.EEException:
             ee.Authenticate()
-            ee.Initialize(project='fet-image-segmentation')
+            ee.Initialize(project='ee-rohitcodes03-1')

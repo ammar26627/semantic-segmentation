@@ -70,5 +70,7 @@ class Models(ImageMask):
     def colorMask(self, classified_pixels):
         for key, value in self.features.items():
             mask = np.zeros((classified_pixels.shape[0], classified_pixels.shape[1], 3), dtype=np.uint8)
-            mask[classified_pixels == value] = self.color_map.get(key, self.color_map[None])
+            for i in range(classified_pixels.shape[0]):
+                for j in range(classified_pixels.shape[1]):
+                    mask[i][j] = self.color_map.get(classified_pixels[i][j], self.color_map[None])
             self.colored_mask[key] = mask
