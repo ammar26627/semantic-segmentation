@@ -43,12 +43,13 @@ class ImageMask(GeeImage):
         training_pixels = []
         training_lables = []
         for key, value in self.features.items():
+            pixels = []
             for element in ee_geometry[key]:
                 pixel_value, class_value = self.sample_region(element, value)
-                self.pixels[key].append(pixel_value)
+                pixels.append(pixel_value)
                 training_pixels.append(pixel_value)
                 training_lables.append(class_value)
-            self.pixels[key] = np.vstack(self.pixels[key])
+            self.pixels[key] = np.vstack(pixels)
             self.mean[key] = np.mean(self.pixels[key], axis=0)
             self.cov[key] = np.cov(self.pixels[key],  rowvar=False)
         self.X_train = np.vstack(training_pixels)
