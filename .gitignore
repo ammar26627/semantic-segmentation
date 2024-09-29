@@ -1,5 +1,3 @@
 env/
 __pycache__/
-sam/
-roi.json
-class.json
+app/__pycache__/

@@ -1,4 +1,8 @@
-import ee, geemap, numpy as np
+# app/gee_image.py
+
+import ee, geemap, numpy as np, os
+from google.oauth2.service_account import Credentials
+# from dotenv import load_dotenv
 
 class GeeImage():
     '''
@@ -40,10 +44,10 @@ class GeeImage():
     def getNormalizedImage(self):
         return self.normalized_image
     
-    @classmethod
-    def initialize_earth_engine(cls):
-        try:
-            ee.Initialize(project='fet-image-segmentation')
-        except ee.EEException:
-            ee.Authenticate()
-            ee.Initialize(project='fet-image-segmentation')
+    # @classmethod
+    # def initialize_earth_engine(cls):
+    #     load_dotenv()
+    #     credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+    #     scopes = ['https://www.googleapis.com/auth/earthengine']
+    #     credentials = Credentials.from_service_account_file(credentials_path, scopes= scopes)
+    #     ee.Initialize(credentials)

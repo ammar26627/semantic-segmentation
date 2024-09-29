@@ -1,9 +1,11 @@
-from mask import ImageMask
+# app/models.py
+
+from app.mask import ImageMask
 from scipy.spatial.distance import mahalanobis
 from scipy.stats import multivariate_normal
 import numpy as np
 from collections import defaultdict
-from parallelepiped import ParallelepipedClassifier
+from app.parallelepiped import ParallelepipedClassifier
 from sklearn.ensemble import RandomForestClassifier
 
 class Models(ImageMask):

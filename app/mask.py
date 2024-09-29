@@ -1,5 +1,7 @@
+# app/mask.py
+
 import ee, numpy as np
-from gee_image import GeeImage
+from app.gee_image import GeeImage
 from collections import defaultdict
 
 class ImageMask(GeeImage):
