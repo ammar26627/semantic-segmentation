@@ -15,7 +15,7 @@ class GeeImage():
         self.sentinal_image = None
 
     def setRoiData(self, data):
-        self.roi = data['geojson'][0][0]['geometry']['coordinates'][0]
+        self.roi = data['geojson'][0]['geometry']['coordinates'][0]
         self.bands = [ band for band in data['bands'].values()]
         self.scale = 30
     

@@ -6,7 +6,7 @@ class ImageMask(GeeImage):
     def __init__(self) -> None:
         super().__init__()
         self.features = {}
-        self.features_geometries = defaultdict(list)
+        self.features_geometries = None
         self.color_map = {None: [0, 0, 0], 0: [0, 0, 0]}
         self.model = ""
         self.feature_image = None
@@ -18,10 +18,12 @@ class ImageMask(GeeImage):
         self.y_train = None
 
     def setClassData(self, data):
+        self.features_geometries = defaultdict(list)
         for i, element in enumerate(data['geojson'], 1):
-            self.features_geometries[element[0]['properties']['class']].append(element[0]['geometry']['coordinates'][0])
-            self.features[element[0]['properties']['class']] = i
-            self.color_map[i] = self.hexToRgb(element[0]['properties']['fill'])
+            class_name = element['properties']['class']
+            self.features_geometries[class_name].append(element['geometry']['coordinates'][0])
+            self.features[element['properties']['class']] = i
+            self.color_map[i] = self.hexToRgb(element['properties']['fill'])
         self.model = data['model']
         self.threshold = data['thresholds']
         self.mask()

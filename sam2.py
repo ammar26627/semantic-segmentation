@@ -63,7 +63,7 @@ class Deeplearning():
         return img, mask
     
     @classmethod
-    def get_points(mask, num_points):  # Sample points inside the input mask
+    def get_points(cls, mask, num_points):  # Sample points inside the input mask
         points = []
         coords = np.argwhere(mask > 0)
         for i in range(num_points):
