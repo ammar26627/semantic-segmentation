@@ -3,14 +3,15 @@
 from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
-import ee, os
+import ee, os, json
 from google.oauth2.service_account import Credentials
 from app.routes import api_bp
 
 def create_app():
 
     app = Flask(__name__)
-    CORS(app)
+    app.secret_key = os.urandom(24)
+    CORS(app, supports_credentials=True)
 
     initialize_earth_engine()
 
@@ -19,7 +20,8 @@ def create_app():
 
 def initialize_earth_engine():
     load_dotenv()
-    credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+    data = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+    credentials = json.loads(data)
     scopes = ['https://www.googleapis.com/auth/earthengine']
-    credentials = Credentials.from_service_account_file(credentials_path, scopes= scopes)
+    credentials = Credentials.from_service_account_info(credentials, scopes= scopes)
     ee.Initialize(credentials)

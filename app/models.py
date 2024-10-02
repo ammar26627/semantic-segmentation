@@ -5,7 +5,6 @@ from scipy.spatial.distance import mahalanobis
 from scipy.stats import multivariate_normal
 import numpy as np
 from collections import defaultdict
-from app.parallelepiped import ParallelepipedClassifier
 from sklearn.ensemble import RandomForestClassifier
 
 class Models(ImageMask):
@@ -19,21 +18,25 @@ class Models(ImageMask):
             self.mahalanobis()
         elif self.model == 'Maximum Likelyhood Classifier':
             self.maximumLikelyHood()
-        elif self.model == 'random forest':
-            pass
+        elif self.model == 'Random Forest Classifier':
+            self.randomForest()
         else:
             self.parallelepiped()
+
         return self.colored_mask
 
     
-    def mahalanobis(self):
-        def classify_pixel(pixel, means, cov, thresholds, inv_cov_key):
+    def mahalanobis(self): 
+        for key, value in self.threshold.items():
+            self.threshold[key] = int(value)
+        def classify_pixel(pixel, means, thresholds, inv_cov_key):
             distances = {}
             for i, key in enumerate(means, 1):
                 distance = mahalanobis(pixel, means[key], inv_cov_key[key])
                 if distance < thresholds[key]:
                     distances[i] = distance
             return min(distances, key=distances.get) if distances else 0
+        
         inv_cov_key = {}
         for key, value in self.cov.items():
             inv_cov_key[key] = np.linalg.inv(value)
@@ -42,12 +45,12 @@ class Models(ImageMask):
         for i in range(self.img_array.shape[0]):
             for j in range(self.img_array.shape[1]):
                 pixel = self.img_array[i, j]
-                classified_pixels[i, j] = classify_pixel(pixel, self.mean, self.cov, self.threshold, inv_cov_key)
+                classified_pixels[i, j] = classify_pixel(pixel, self.mean, self.threshold, inv_cov_key)
         self.colorMask(classified_pixels)
 
 
     def maximumLikelyHood(self):
-        self.threshold = 1e-10 #hard code
+        threshold = 10**(-int(self.threshold))
         height, width, _ = self.img_array.shape
         classified_pixels = np.empty((height, width), dtype=int)
         for i in range(height):
@@ -57,12 +60,19 @@ class Models(ImageMask):
                 classified_pixels[i, j] = 0
                 for k, key in enumerate(self.mean, 1):
                     likelihood = multivariate_normal(mean=self.mean[key], cov=self.cov[key]).pdf(pixel)
-                    if likelihood > max_likelihood and likelihood > self.threshold:
+                    if likelihood > max_likelihood and likelihood > threshold:
                         max_likelihood = likelihood
                         classified_pixels[i, j] = k
         self.colorMask(classified_pixels)
 
-    
+    def randomForest(self):
+        random_forest =  RandomForestClassifier(n_estimators=100, random_state=25)
+        random_forest.fit(self.X_train, self.y_train)
+        unclassified_pixel_values = self.img_array.reshape((-1, len(self.bands)))
+        classified_labels = random_forest.predict(unclassified_pixel_values)
+        classified_pixels = np.array(classified_labels).reshape(self.img_array.shape[0], self.img_array.shape[1])
+        self.colorMask(classified_pixels)
+
     def parallelepiped(self):
         parallelepiped_model = ParallelepipedClassifier()
         parallelepiped_model.fit(self.X_train, self.y_train)
@@ -84,3 +94,33 @@ class Models(ImageMask):
                     else:
                         mask[i][j] = self.color_map.get(None)
             self.colored_mask[key] = mask
+
+
+
+# Parallelepiped Model Class
+
+class ParallelepipedClassifier:
+    def __init__(self):
+        self.thresholds = {}
+
+    def fit(self, X, y):
+        classes = np.unique(y)
+        for cls in classes:
+            class_data = X[y == cls]
+            min_values = np.min(class_data, axis=0)
+            max_values = np.max(class_data, axis=0)
+            self.thresholds[cls] = (min_values, max_values)
+
+    def classify(self, X):
+        labels = []
+        for point in X:
+            label = self._classify_point(point)
+            labels.append(label)
+        return labels
+
+    def _classify_point(self, point):
+        for label, (min_values, max_values) in self.thresholds.items():
+            if np.all(point >= min_values) and np.all(point <= max_values):
+                return label
+        return None
+

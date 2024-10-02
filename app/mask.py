@@ -24,8 +24,9 @@ class ImageMask(GeeImage):
         for i, element in enumerate(data['geojson'], 1):
             class_name = element['properties']['class']
             self.features_geometries[class_name].append(element['geometry']['coordinates'][0])
-            self.features[element['properties']['class']] = i
-            self.color_map[i] = self.hexToRgb(element['properties']['fill'])
+            if element['properties']['class'] not in self.features:
+                self.features[element['properties']['class']] = i
+                self.color_map[i] = self.hexToRgb(element['properties']['fill'])
         self.model = data['model']
         self.threshold = data['thresholds']
         self.mask()
@@ -33,11 +34,12 @@ class ImageMask(GeeImage):
     def mask(self):
         ee_geometry = defaultdict(list)
         for key, value in self.features_geometries.items():
-            ee_geometry[key].append(ee.Geometry.Polygon([value][0]))
-
+            for element in value:
+                ee_geometry[key].append(ee.Geometry.Polygon(element))
         all_geometries = []
         for value in ee_geometry.values():
-            all_geometries += value
+            for element in value:
+                all_geometries.append(element)
 
         combine_ee_geometry = all_geometries[0]
         for element in all_geometries[1:]:
@@ -50,9 +52,9 @@ class ImageMask(GeeImage):
             pixels = []
             for element in ee_geometry[key]:
                 pixel_value, class_value = self.sample_region(element, value)
-                pixels.append(pixel_value)
-                training_pixels.append(pixel_value)
-                training_lables.append(class_value)
+                pixels.extend(pixel_value)
+                training_pixels.extend(pixel_value)
+                training_lables.extend(class_value)
             self.pixels[key] = np.vstack(pixels)
             self.mean[key] = np.mean(self.pixels[key], axis=0)
             self.cov[key] = np.cov(self.pixels[key],  rowvar=False)
