@@ -4,7 +4,7 @@ from flask import jsonify, send_file, request, Blueprint, session
 from app.process_image import preprocess, get_area
 from app.resource_tracker import log_resource_usage
 from app.models import Models
-import base64, pickle
+import base64
 from collections import defaultdict
 
 
@@ -23,7 +23,8 @@ def gee_image():
     model.setRoiData(roi_data)  # Set the ROI in the model
     model.getImage()  # Fetch the image based on ROI
     image = model.getNormalizedImage()  # Normalize the image for processing
-    session['model'] = pickle.dumps(model)
+    if 'model' not in session:
+        session['model'] = model
     image_png = preprocess(image, False)  # Preprocess the image (modify as needed)
     
     # Send the image as a response
@@ -36,9 +37,9 @@ def generate_mask():
     """
     class_data = request.json  # Expecting JSON data with class information
     if 'model' in session:
-        model = pickle.loads(session['model'])
+        model = session['model']
     else:
-        return jsonify({'No Google Earth Image Found.'}), 400
+        return "No Google Earth Image Found.", 400
     
     model.setClassData(class_data)  # Set the class data in the model
     colored_mask_pngs = model.getColoredMask()  # Get the colored mask images
