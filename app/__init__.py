@@ -2,7 +2,9 @@
 
 from flask import Flask
 from flask_cors import CORS
+from flask_session import Session
 from dotenv import load_dotenv
+from datetime import timedelta
 import ee, os, json
 from google.oauth2.service_account import Credentials
 from app.routes import api_bp
@@ -11,6 +13,11 @@ def create_app():
 
     app = Flask(__name__)
     app.secret_key = os.urandom(24)
+    app.config['SESSION_TYPE'] = 'filesystem'
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
+    app.config['SESSION_FILE_THRESHOLD'] = 20
+    Session(app)
+
     CORS(app, supports_credentials=True)
 
     initialize_earth_engine()

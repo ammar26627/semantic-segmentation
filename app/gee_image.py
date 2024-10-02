@@ -1,7 +1,6 @@
 # app/gee_image.py
 
-import ee, geemap, numpy as np, os
-from google.oauth2.service_account import Credentials
+import ee, geemap, numpy as np
 from dateutil.relativedelta import relativedelta
 from datetime import datetime
 

@@ -1,5 +1,6 @@
 env/
 __pycache__/
 app/__pycache__/
+flask_session/
 ee_cred.json
 .env
