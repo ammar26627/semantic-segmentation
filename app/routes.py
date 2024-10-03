@@ -31,7 +31,7 @@ def gee_image():
 
     image = model.getNormalizedImage()  # Normalize the image for processing
     print(dict(session))
-    
+
     if 'model' not in session:
         session['model'] = model
     image_png = preprocess(image, False)  # Preprocess the image (Remove black background)
@@ -55,6 +55,7 @@ def generate_mask():
         model.setClassData(class_data)  # Set the class data in the model
         colored_mask_pngs = model.getColoredMask()  # Get the colored mask images
     except Exception as e:
+        print(str(e))
         return 'Error while generating mask. Please refresh and retry.', 400
     response = defaultdict()
 
