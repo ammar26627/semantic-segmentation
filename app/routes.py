@@ -48,7 +48,7 @@ def generate_mask():
     print(class_data)
     if 'image' in session:
         image = session['image']
-        mask = ImageMask(image.bands, image.scale, image.img_array, image.sentinal_image, image.start_date, image.end_date)
+        mask = Models(image.bands, image.scale, image.img_array, image.sentinal_image, image.start_date, image.end_date)
     else:
         return 'Please select an ROI first. If the problem persist, enable cookies in the browser.', 400
     

@@ -8,8 +8,8 @@ from collections import defaultdict
 from sklearn.ensemble import RandomForestClassifier
 
 class Models(ImageMask):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, bands, scale, img_array, sentinal_image, start_date, end_date) -> None:
+        super().__init__(bands, scale, img_array, sentinal_image, start_date, end_date)
         self.colored_mask = defaultdict()
         self.binary_masks = defaultdict()
 
