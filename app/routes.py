@@ -4,12 +4,12 @@ from flask import jsonify, send_file, request, Blueprint, session
 from app.process_image import preprocess, get_area
 from app.extras import log_resource_usage, intro
 from app.models import Models
+from app.mask import ImageMask
 import base64
 from collections import defaultdict
 from googleapiclient.errors import HttpError
 
 
-model = Models()
 # Create a Blueprint for routes
 api_bp = Blueprint('api', __name__)
 
@@ -19,7 +19,7 @@ def gee_image():
     """
     Endpoint to get a Google Earth Engine image based on the region of interest (ROI).
     """
-    # model = Models()
+    model = Models()
     roi_data = request.json
     try:
         model.setRoiData(roi_data)  # Set the ROI in the model
@@ -45,10 +45,11 @@ def generate_mask():
     """
     class_data = request.json
     print(class_data)
-    # if 'model' in session:
-    #     model = session['model']
-    # else:
-    #     return 'Please select an ROI first. If the problem persist, enable cookies in the browser.', 400
+    if 'model' in session:
+        model = session['model']
+        mask = ImageMask(model.bands, model.scale, model.img_array, model.sentinal_image, model.start_date, model.end_date)
+    else:
+        return 'Please select an ROI first. If the problem persist, enable cookies in the browser.', 400
     
     # try:
     #     print(model.roi)
@@ -57,12 +58,12 @@ def generate_mask():
     # except Exception as e:
     #     print(e)
     #     return 'Error while generating mask. Please refresh and retry.', 400
-    model.setClassData(class_data)  # Set the class data in the model
-    colored_mask_pngs = model.getColoredMask()  # Get the colored mask images
+    mask.setClassData(class_data)  # Set the class data in the model
+    colored_mask_pngs = mask.getColoredMask()  # Get the colored mask images
     response = defaultdict()
 
     for key, value in colored_mask_pngs.items():
-        area = get_area(value, model.scale)  # Calculate area
+        area = get_area(value, mask.scale)  # Calculate area
         png_mask = preprocess(value, True)  # Preprocess the mask (Remove black background)
         base_64 = base64.b64encode(png_mask.getvalue()).decode('utf-8')  # Convert to base64
         response[key] = [base_64, 1, area]  # Build the response dictionary

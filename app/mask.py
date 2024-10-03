@@ -4,11 +4,17 @@ import ee, numpy as np
 from app.gee_image import GeeImage
 from collections import defaultdict
 
-class ImageMask(GeeImage):
-    def __init__(self) -> None:
+class ImageMask():
+    def __init__(self, bands, scale, img_array, sentinal_image, start_date, end_date) -> None:
         super().__init__()
         self.features = {}
         print("Calling init")
+        self.bands = bands
+        self.scale = scale
+        self.img_array = img_array
+        self.sentinal_image = sentinal_image
+        self.start_date = start_date
+        self.end_date = end_date
         self.features_geometries = None
         self.color_map = {None: [0, 0, 0], 0: [0, 0, 0]}
         self.model = ""
