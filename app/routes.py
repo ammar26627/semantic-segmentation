@@ -51,10 +51,8 @@ def generate_mask():
         return 'Please select an ROI first. If the problem persist, enable cookies in the browser.', 400
     
     try:
-        model.setClassData(class_data)  # Set the class data in the model
         print(model.roi)
-        print(model.pixels)
-        print(model.features_geometries)
+        model.setClassData(class_data)  # Set the class data in the model
         colored_mask_pngs = model.getColoredMask()  # Get the colored mask images
     except Exception as e:
         print(e)
