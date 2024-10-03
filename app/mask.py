@@ -22,10 +22,11 @@ class ImageMask(GeeImage):
     def setClassData(self, data):
         self.features_geometries = defaultdict(list)
         for i, element in enumerate(data['geojson'], 1):
+            print(class_name)
             class_name = element['properties']['class']
             self.features_geometries[class_name].append(element['geometry']['coordinates'][0])
-            if element['properties']['class'] not in self.features:
-                self.features[element['properties']['class']] = i
+            if class_name not in self.features:
+                self.features[class_name] = i
                 self.color_map[i] = self.hexToRgb(element['properties']['fill'])
         self.model = data['model']
         self.threshold = data['thresholds']
