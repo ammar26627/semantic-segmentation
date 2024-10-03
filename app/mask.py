@@ -31,8 +31,8 @@ class ImageMask(GeeImage):
                 self.color_map[i] = self.hexToRgb(element['properties']['fill'])
         self.model = data['model']
         self.threshold = data['thresholds']
-        self.mask()
         print(self.features)
+        self.mask()
 
     def mask(self):
         ee_geometry = defaultdict(list)
