@@ -50,7 +50,7 @@ class ImageMask(GeeImage):
         training_lables = []
         for key, value in self.features.items():
             pixels = []
-            print(ee_geometry.keys(), "EE_Geometry")
+            print(ee_geometry[key], "EE_Geometry")
             for element in ee_geometry[key]:
                 pixel_value, class_value = self.sample_region(element, value)
                 print("Pixel Error",key, pixel_value.shape)
