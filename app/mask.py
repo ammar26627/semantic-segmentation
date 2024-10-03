@@ -40,6 +40,8 @@ class ImageMask(GeeImage):
                 geom = ee.Geometry.Polygon(element)
                 print(geom, "Geom")
                 ee_geometry[key].append(geom)
+                print(ee_geometry[key], "append")
+        print(ee_geometry, "print")
         all_geometries = []
         for value in ee_geometry.values():
             for element in value:
