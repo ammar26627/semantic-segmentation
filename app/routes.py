@@ -9,7 +9,7 @@ from collections import defaultdict
 from googleapiclient.errors import HttpError
 
 
-
+model = Models()
 # Create a Blueprint for routes
 api_bp = Blueprint('api', __name__)
 
@@ -19,7 +19,7 @@ def gee_image():
     """
     Endpoint to get a Google Earth Engine image based on the region of interest (ROI).
     """
-    model = Models()
+    # model = Models()
     roi_data = request.json
     try:
         model.setRoiData(roi_data)  # Set the ROI in the model
@@ -31,8 +31,8 @@ def gee_image():
 
     image = model.getNormalizedImage()  # Normalize the image for processing
 
-    if 'model' not in session:
-        session['model'] = model
+    # if 'model' not in session:
+    #     session['model'] = model
     image_png = preprocess(image, False)  # Preprocess the image (Remove black background)
     
     # Send the image as a response
@@ -45,10 +45,10 @@ def generate_mask():
     """
     class_data = request.json
     print(class_data)
-    if 'model' in session:
-        model = session['model']
-    else:
-        return 'Please select an ROI first. If the problem persist, enable cookies in the browser.', 400
+    # if 'model' in session:
+    #     model = session['model']
+    # else:
+    #     return 'Please select an ROI first. If the problem persist, enable cookies in the browser.', 400
     
     # try:
     #     print(model.roi)
@@ -68,7 +68,7 @@ def generate_mask():
         response[key] = [base_64, 1, area]  # Build the response dictionary
 
     # Empty the session variable
-    session.pop('model', None)
+    # session.pop('model', None)
 
     return jsonify(response)
 
