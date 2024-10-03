@@ -6,6 +6,7 @@ from app.resource_tracker import log_resource_usage
 from app.models import Models
 import base64
 from collections import defaultdict
+from googleapiclient.errors import HttpError
 
 
 
@@ -20,8 +21,14 @@ def gee_image():
     """
     model = Models()
     roi_data = request.json  # Expecting JSON data with ROI information
-    model.setRoiData(roi_data)  # Set the ROI in the model
-    model.getImage()  # Fetch the image based on ROI
+    try:
+        model.setRoiData(roi_data)  # Set the ROI in the model
+        model.getImage()  # Fetch the image based on ROI
+    except HttpError as e:
+        return 'Selected ROI is too large. Select between between scale of 2 and 3.', 400
+    except Exception as e:
+        return 'An error has occured while fetching satellite imagery. Please refresh and retry', 400
+
     image = model.getNormalizedImage()  # Normalize the image for processing
     if 'model' not in session:
         session['model'] = model
@@ -39,10 +46,13 @@ def generate_mask():
     if 'model' in session:
         model = session['model']
     else:
-        return "No Google Earth Image Found.", 400
+        return 'Please select an ROI first. If the problem persist, enable cookies in the browser.', 400
     
-    model.setClassData(class_data)  # Set the class data in the model
-    colored_mask_pngs = model.getColoredMask()  # Get the colored mask images
+    try:
+        model.setClassData(class_data)  # Set the class data in the model
+        colored_mask_pngs = model.getColoredMask()  # Get the colored mask images
+    except Exception as e:
+        return 'Error while generating mask. Please refresh and retry.'
     response = defaultdict()
 
     for key, value in colored_mask_pngs.items():
