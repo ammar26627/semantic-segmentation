@@ -34,6 +34,7 @@ class ImageMask(GeeImage):
     def mask(self):
         ee_geometry = defaultdict(list)
         for key, value in self.features_geometries.items():
+            print("Features", self.features_geometries[key])
             for element in value:
                 ee_geometry[key].append(ee.Geometry.Polygon(element))
         all_geometries = []
