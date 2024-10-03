@@ -32,8 +32,8 @@ def gee_image():
 
     norm_image = image.getNormalizedImage()  # Normalize the image for processing
 
-    # if 'image' not in session:
-    #     session['image'] = image
+    if 'image' not in session:
+        session['image'] = image
     image_png = preprocess(norm_image, False)  # Preprocess the image (Remove black background)
     
     # Send the image as a response
