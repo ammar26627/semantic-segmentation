@@ -10,6 +10,11 @@ def log_resource_usage():
     memory_usage = memory_info.percent
     total_memory = memory_info.total
     used_memory = memory_info.used
+    disk_info = psutil.disk_usage('/')
+    total_storage = disk_info.total
+    free_storage = disk_info.free
+    used_storage = disk_info.used
+
     resource_data = f'''
     <html>
         <head>
@@ -31,8 +36,11 @@ def log_resource_usage():
             <br>
             <p>CPU Usage: {cpu_usage}%</p>
             <p>Memory Usage: {memory_usage}%</p>
-            <p>Total Memory: {total_memory / (1024 ** 3):.2f} GB</p>  <!-- Convert bytes to GB -->
-            <p>Used Memory: {used_memory / (1024 ** 3):.2f} GB</p>  <!-- Convert bytes to GB -->
+            <p>Total Memory: {total_memory / (1024 ** 3):.2f} GB</p>
+            <p>Used Memory: {used_memory / (1024 ** 3):.2f} GB</p>
+            <p>Total Storage: {total_storage / (1024 ** 3):.2f} GB</p>
+            <p>Used Storage: {used_storage / (1024 ** 3):.2f} GB</p>
+            <p>Free Storage: {free_storage / (1024 ** 3):.2f} GB</p>
         </body>
     </html>
     '''

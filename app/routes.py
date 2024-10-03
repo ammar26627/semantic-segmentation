@@ -30,6 +30,8 @@ def gee_image():
         return 'An error has occured while fetching satellite imagery. Please refresh and retry', 400
 
     image = model.getNormalizedImage()  # Normalize the image for processing
+    print(dict(session))
+    
     if 'model' not in session:
         session['model'] = model
     image_png = preprocess(image, False)  # Preprocess the image (Remove black background)
@@ -43,6 +45,7 @@ def generate_mask():
     Endpoint to generate a colored mask based on class data.
     """
     class_data = request.json
+    print(dict(session))
     if 'model' in session:
         model = session['model']
     else:
