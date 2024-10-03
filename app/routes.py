@@ -5,6 +5,7 @@ from app.process_image import preprocess, get_area
 from app.extras import log_resource_usage, intro
 from app.models import Models
 from app.mask import ImageMask
+from app.gee_image import GeeImage
 import base64
 from collections import defaultdict
 from googleapiclient.errors import HttpError
@@ -19,21 +20,21 @@ def gee_image():
     """
     Endpoint to get a Google Earth Engine image based on the region of interest (ROI).
     """
-    model = Models()
+    image = GeeImage()
     roi_data = request.json
     try:
-        model.setRoiData(roi_data)  # Set the ROI in the model
-        model.getImage()  # Fetch the image based on ROI
+        image.setRoiData(roi_data)  # Set the ROI in the image
+        image.getImage()  # Fetch the image based on ROI
     except HttpError as e:
         return 'Selected ROI is too large. Select between between scale of 2 and 3.', 400
     except Exception as e:
         return 'An error has occured while fetching satellite imagery. Please refresh and retry', 400
 
-    image = model.getNormalizedImage()  # Normalize the image for processing
+    norm_image = image.getNormalizedImage()  # Normalize the image for processing
 
-    # if 'model' not in session:
-    #     session['model'] = model
-    image_png = preprocess(image, False)  # Preprocess the image (Remove black background)
+    # if 'image' not in session:
+    #     session['image'] = image
+    image_png = preprocess(norm_image, False)  # Preprocess the image (Remove black background)
     
     # Send the image as a response
     return send_file(image_png, mimetype='image/png'), 200
@@ -45,20 +46,20 @@ def generate_mask():
     """
     class_data = request.json
     print(class_data)
-    if 'model' in session:
-        model = session['model']
-        mask = ImageMask(model.bands, model.scale, model.img_array, model.sentinal_image, model.start_date, model.end_date)
+    if 'image' in session:
+        image = session['image']
+        mask = ImageMask(image.bands, image.scale, image.img_array, image.sentinal_image, image.start_date, image.end_date)
     else:
         return 'Please select an ROI first. If the problem persist, enable cookies in the browser.', 400
     
     # try:
-    #     print(model.roi)
-    #     model.setClassData(class_data)  # Set the class data in the model
-    #     colored_mask_pngs = model.getColoredMask()  # Get the colored mask images
+    #     print(image.roi)
+    #     image.setClassData(class_data)  # Set the class data in the image
+    #     colored_mask_pngs = image.getColoredMask()  # Get the colored mask images
     # except Exception as e:
     #     print(e)
     #     return 'Error while generating mask. Please refresh and retry.', 400
-    mask.setClassData(class_data)  # Set the class data in the model
+    mask.setClassData(class_data)  # Set the class data in the image
     colored_mask_pngs = mask.getColoredMask()  # Get the colored mask images
     response = defaultdict()
 
@@ -69,7 +70,7 @@ def generate_mask():
         response[key] = [base_64, 1, area]  # Build the response dictionary
 
     # Empty the session variable
-    # session.pop('model', None)
+    # session.pop('image', None)
 
     return jsonify(response)
 
