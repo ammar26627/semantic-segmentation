@@ -44,8 +44,6 @@ def generate_mask():
     Endpoint to generate a colored mask based on class data.
     """
     class_data = request.json
-    print(model.roi, "Roi, data")
-    print(class_data)
     # if 'model' in session:
     #     model = session['model']
     # else:
