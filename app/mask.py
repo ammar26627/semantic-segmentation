@@ -8,6 +8,7 @@ class ImageMask(GeeImage):
     def __init__(self) -> None:
         super().__init__()
         self.features = {}
+        print("Calling init")
         self.features_geometries = None
         self.color_map = {None: [0, 0, 0], 0: [0, 0, 0]}
         self.model = ""
@@ -31,6 +32,7 @@ class ImageMask(GeeImage):
         self.model = data['model']
         self.threshold = data['thresholds']
         self.mask()
+        print(self.features)
 
     def mask(self):
         ee_geometry = defaultdict(list)
