@@ -50,13 +50,15 @@ def generate_mask():
     else:
         return 'Please select an ROI first. If the problem persist, enable cookies in the browser.', 400
     
-    try:
-        print(model.roi)
-        model.setClassData(class_data)  # Set the class data in the model
-        colored_mask_pngs = model.getColoredMask()  # Get the colored mask images
-    except Exception as e:
-        print(e)
-        return 'Error while generating mask. Please refresh and retry.', 400
+    # try:
+    #     print(model.roi)
+    #     model.setClassData(class_data)  # Set the class data in the model
+    #     colored_mask_pngs = model.getColoredMask()  # Get the colored mask images
+    # except Exception as e:
+    #     print(e)
+    #     return 'Error while generating mask. Please refresh and retry.', 400
+    model.setClassData(class_data)  # Set the class data in the model
+    colored_mask_pngs = model.getColoredMask()  # Get the colored mask images
     response = defaultdict()
 
     for key, value in colored_mask_pngs.items():
