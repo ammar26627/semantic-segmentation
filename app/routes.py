@@ -52,7 +52,7 @@ def generate_mask():
         model.setClassData(class_data)  # Set the class data in the model
         colored_mask_pngs = model.getColoredMask()  # Get the colored mask images
     except Exception as e:
-        return 'Error while generating mask. Please refresh and retry.'
+        return 'Error while generating mask. Please refresh and retry.', 400
     response = defaultdict()
 
     for key, value in colored_mask_pngs.items():
