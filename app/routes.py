@@ -2,7 +2,7 @@
 
 from flask import jsonify, send_file, request, Blueprint, session
 from app.process_image import preprocess, get_area
-from app.resource_tracker import log_resource_usage
+from app.extras import log_resource_usage, intro
 from app.models import Models
 import base64
 from collections import defaultdict
@@ -20,7 +20,7 @@ def gee_image():
     Endpoint to get a Google Earth Engine image based on the region of interest (ROI).
     """
     model = Models()
-    roi_data = request.json  # Expecting JSON data with ROI information
+    roi_data = request.json
     try:
         model.setRoiData(roi_data)  # Set the ROI in the model
         model.getImage()  # Fetch the image based on ROI
@@ -32,17 +32,17 @@ def gee_image():
     image = model.getNormalizedImage()  # Normalize the image for processing
     if 'model' not in session:
         session['model'] = model
-    image_png = preprocess(image, False)  # Preprocess the image (modify as needed)
+    image_png = preprocess(image, False)  # Preprocess the image (Remove black background)
     
     # Send the image as a response
-    return send_file(image_png, mimetype='image/png')
+    return send_file(image_png, mimetype='image/png'), 200
 
 @api_bp.route('/get_mask', methods=['POST'])
 def generate_mask():
     """
     Endpoint to generate a colored mask based on class data.
     """
-    class_data = request.json  # Expecting JSON data with class information
+    class_data = request.json
     if 'model' in session:
         model = session['model']
     else:
@@ -56,25 +56,22 @@ def generate_mask():
     response = defaultdict()
 
     for key, value in colored_mask_pngs.items():
-        area = get_area(value, model.scale)  # Calculate area (modify as per your logic)
-        png_mask = preprocess(value, True)  # Preprocess the mask (modify as needed)
+        area = get_area(value, model.scale)  # Calculate area
+        png_mask = preprocess(value, True)  # Preprocess the mask (Remove black background)
         base_64 = base64.b64encode(png_mask.getvalue()).decode('utf-8')  # Convert to base64
         response[key] = [base_64, 1, area]  # Build the response dictionary
 
     # Empty the session variable
     session.pop('model', None)
-    # Return the response as JSON
+
     return jsonify(response)
 
 @api_bp.route("/resource_usage")
 def checkResource():
-    resourse_log = log_resource_usage()
 
-    return resourse_log
+    return log_resource_usage(), 200
 
 @api_bp.route('/')
 def default():
-    """
-    Default entry endpoint.
-    """
-    return "Semantic segmentation of satellite images using machine learning and deep learning models."
+
+    return intro(), 200
