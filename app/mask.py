@@ -22,8 +22,8 @@ class ImageMask(GeeImage):
     def setClassData(self, data):
         self.features_geometries = defaultdict(list)
         for i, element in enumerate(data['geojson'], 1):
-            print(class_name)
             class_name = element['properties']['class']
+            print(class_name)
             self.features_geometries[class_name].append(element['geometry']['coordinates'][0])
             if class_name not in self.features:
                 self.features[class_name] = i
