@@ -79,6 +79,7 @@ class ImageMask():
 
 
     def sample_region(self, region, class_label):
+        print(self.sentinal_image.getInfo())
         sampled = self.sentinal_image.sample(region=region, scale=self.scale, numPixels=500)
         pixels = sampled.select(self.bands).getInfo()
         values = [x['properties'] for x in pixels['features']]
