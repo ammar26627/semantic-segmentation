@@ -80,7 +80,7 @@ class ImageMask():
 
     def sample_region(self, region, class_label):
         sampled = self.feature_image.sample(region=region, scale=self.scale, numPixels=500)
-        print(sampled, "sampled")
+        print(sampled, region.area().getInfo(), self.scale, region, "Printed")
         pixels = sampled.select(self.bands).getInfo()
         print(pixels, "px")
         values = [x['properties'] for x in pixels['features']]
