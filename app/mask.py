@@ -76,11 +76,11 @@ class ImageMask():
         self.X_train = np.vstack(training_pixels)
         self.y_train = np.hstack(training_lables)   
 
-    
+
 
     def sample_region(self, region, class_label):
         sampled = self.feature_image.sample(region=region, scale=self.scale, numPixels=500)
-        print(sampled, region.area().getInfo(), self.scale, region, "Printed")
+        print(sampled.getInfo()['features'], region.area().getInfo(), self.scale, region, "Printed")
         pixels = sampled.select(self.bands).getInfo()
         print(pixels, "px")
         values = [x['properties'] for x in pixels['features']]
