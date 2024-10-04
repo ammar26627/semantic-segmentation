@@ -4,3 +4,5 @@ app/__pycache__/
 flask_session/
 ee_cred.json
 .env
+test.py
+Mahanalobis_diastance.ipynb

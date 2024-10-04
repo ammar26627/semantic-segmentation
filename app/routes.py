@@ -9,6 +9,7 @@ from app.gee_image import GeeImage
 import base64
 from collections import defaultdict
 from googleapiclient.errors import HttpError
+# from test import test
 
 
 # Create a Blueprint for routes
@@ -81,5 +82,5 @@ def checkResource():
 
 @api_bp.route('/')
 def default():
-
+    # test()
     return intro(), 200
