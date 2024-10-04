@@ -6,7 +6,6 @@ from collections import defaultdict
 
 class ImageMask():
     def __init__(self, bands, scale, img_array, sentinal_image, start_date, end_date) -> None:
-        super().__init__()
         self.features = {}
         print("Calling init")
         self.bands = bands
@@ -64,8 +63,8 @@ class ImageMask():
         training_lables = []
         for key, value in self.features.items():
             pixels = []
-            print(key ,ee_geometry[key], "EE_Geometry")
             for element in ee_geometry[key]:
+                print(element, value, "Element, value")
                 pixel_value, class_value = self.sample_region(element, value)
                 print("Pixel Error",key, pixel_value.shape)
                 pixels.extend(pixel_value)
