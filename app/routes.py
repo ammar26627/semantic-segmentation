@@ -26,15 +26,16 @@ def gee_image():
     try:
         image.setRoiData(roi_data)  # Set the ROI in the image
         image.getImage()  # Fetch the image based on ROI
-    except HttpError as e:
-        return 'Selected ROI is too large. Select between between scale of 2 and 3.', 400
     except Exception as e:
-        return 'An error has occured while fetching satellite imagery. Please refresh and retry', 400
+        return 'Selected ROI too large or an error has occured while fetching satellite imagery. Please refresh and retry', 400
 
     norm_image = image.getNormalizedImage()  # Normalize the image for processing
 
-    if 'image' not in session:
-        session['image'] = image
+    session['image'] = image.img_array
+    session['band'] = image.bands
+    session['scale'] = image.scale
+    session['start_date'] = image.start_date
+    session['end_date'] = image.end_date
     image_png = preprocess(norm_image, False)  # Preprocess the image (Remove black background)
     
     # Send the image as a response
@@ -46,24 +47,23 @@ def generate_mask():
     Endpoint to generate a colored mask based on class data.
     """
     class_data = request.json
-    print(class_data)
     if 'image' in session:
-        image = session['image']
-        mask = Models(image.bands, image.scale, image.img_array, image.sentinal_image, image.start_date, image.end_date)
+        img_array = session['image']
+        bands = session['band']
+        scale = session['scale']
+        start_date = session['start_date']
+        end_date = session['end_date']
+        mask = Models(bands, scale, img_array, start_date, end_date)
     else:
         return 'Please select an ROI first. If the problem persist, enable cookies in the browser.', 400
     
-    # try:
-    #     print(image.roi)
-    #     image.setClassData(class_data)  # Set the class data in the image
-    #     colored_mask_pngs = image.getColoredMask()  # Get the colored mask images
-    # except Exception as e:
-    #     print(e)
-    #     return 'Error while generating mask. Please refresh and retry.', 400
-    mask.setClassData(class_data)  # Set the class data in the image
-    colored_mask_pngs = mask.getColoredMask()  # Get the colored mask images
-    response = defaultdict()
+    try:
+        mask.setClassData(class_data)  # Set the class data in the image
+        colored_mask_pngs = mask.getColoredMask()  # Get the colored mask images
+    except Exception as e:
+        return 'Error while generating mask. Please refresh and retry.', 400
 
+    response = defaultdict()
     for key, value in colored_mask_pngs.items():
         area = get_area(value, mask.scale)  # Calculate area
         png_mask = preprocess(value, True)  # Preprocess the mask (Remove black background)
@@ -71,7 +71,11 @@ def generate_mask():
         response[key] = [base_64, 1, area]  # Build the response dictionary
 
     # Empty the session variable
-    # session.pop('image', None)
+    session.pop('image', None)
+    session.pop('band', None)
+    session.pop('scale', None)
+    session.pop('start_date', None)
+    session.pop('end_date', None)
 
     return jsonify(response)
 

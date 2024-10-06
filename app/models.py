@@ -8,8 +8,12 @@ from collections import defaultdict
 from sklearn.ensemble import RandomForestClassifier
 
 class Models(ImageMask):
-    def __init__(self, bands, scale, img_array, sentinal_image, start_date, end_date) -> None:
-        super().__init__(bands, scale, img_array, sentinal_image, start_date, end_date)
+    def __init__(self, bands, scale, img_array, start_date, end_date) -> None:
+        super().__init__(bands, scale, img_array, start_date, end_date)
+        reshaped_array = self.img_array.reshape((-1, len(self.bands)))
+        self.non_zero_mask = (reshaped_array != 0).any(axis=1)
+        self.non_zero_img_array = reshaped_array[self.non_zero_mask]
+        self.output_pixels = np.zeros(self.non_zero_img_array.shape[0], dtype=np.int32)
         self.colored_mask = defaultdict()
         self.binary_masks = defaultdict()
 
@@ -41,56 +45,48 @@ class Models(ImageMask):
         for key, value in self.cov.items():
             inv_cov_key[key] = np.linalg.inv(value)
 
-        classified_pixels = np.zeros(self.img_array.shape[:2], dtype=np.int32)
-        for i in range(self.img_array.shape[0]):
-            for j in range(self.img_array.shape[1]):
-                pixel = self.img_array[i, j]
-                classified_pixels[i, j] = classify_pixel(pixel, self.mean, self.threshold, inv_cov_key)
-        self.colorMask(classified_pixels)
+        for i, pixel in enumerate(self.non_zero_img_array):
+            self.output_pixels[i] = classify_pixel(pixel, self.mean, self.threshold, inv_cov_key)
+        self.colorMask()
 
 
     def maximumLikelyHood(self):
         threshold = 10**(-int(self.threshold))
-        height, width, _ = self.img_array.shape
-        classified_pixels = np.empty((height, width), dtype=int)
-        for i in range(height):
-            for j in range(width):
-                pixel = self.img_array[i, j]
-                max_likelihood = -np.inf
-                classified_pixels[i, j] = 0
-                for k, key in enumerate(self.mean, 1):
-                    likelihood = multivariate_normal(mean=self.mean[key], cov=self.cov[key]).pdf(pixel)
-                    if likelihood > max_likelihood and likelihood > threshold:
-                        max_likelihood = likelihood
-                        classified_pixels[i, j] = k
-        self.colorMask(classified_pixels)
+        for i, pixel in enumerate(self.non_zero_img_array):
+            max_likelihood = -np.inf
+            for k, key in enumerate(self.mean, 1):
+                likelihood = multivariate_normal(mean=self.mean[key], cov=self.cov[key]).pdf(pixel)
+                if likelihood > max_likelihood and likelihood > threshold:
+                    max_likelihood = likelihood
+                    self.output_pixels[i] = k
+        self.colorMask()
 
     def randomForest(self):
         random_forest =  RandomForestClassifier(n_estimators=100, random_state=25)
         random_forest.fit(self.X_train, self.y_train)
-        unclassified_pixel_values = self.img_array.reshape((-1, len(self.bands)))
-        classified_labels = random_forest.predict(unclassified_pixel_values)
-        classified_pixels = np.array(classified_labels).reshape(self.img_array.shape[0], self.img_array.shape[1])
-        self.colorMask(classified_pixels)
+        self.output_pixels = random_forest.predict(self.non_zero_img_array)
+        self.colorMask()
 
     def parallelepiped(self):
         parallelepiped_model = ParallelepipedClassifier()
         parallelepiped_model.fit(self.X_train, self.y_train)
-        unclassified_pixel_values = self.img_array.reshape((-1, len(self.bands)))
-        labels = parallelepiped_model.classify(unclassified_pixel_values)
-        classified_labels = np.array(labels).reshape(self.img_array.shape[0], self.img_array.shape[1])
-        classified_pixels = np.array(classified_labels).reshape(self.img_array.shape[0], self.img_array.shape[1])
-        classified_pixels[classified_pixels == None] = 0
-        self.colorMask(classified_pixels)
+        self.output_pixels = parallelepiped_model.classify(self.non_zero_img_array)
+        self.colorMask()
 
     
-    def colorMask(self, classified_pixels):
+    def colorMask(self):
+        non_zero_mask = np.any(self.img_array != 0, axis=-1)
         for key, value in self.features.items():
-            mask = np.zeros((classified_pixels.shape[0], classified_pixels.shape[1], 3), dtype=np.uint8)
-            for i in range(classified_pixels.shape[0]):
-                for j in range(classified_pixels.shape[1]):
-                    if classified_pixels[i][j] == value:
-                        mask[i][j] = self.color_map.get(value, self.color_map[None])
+            mask = np.zeros((self.img_array.shape[0], self.img_array.shape[1], 3), dtype=np.uint8)
+            k = 0
+            for i in range(self.img_array.shape[0]):
+                for j in range(self.img_array.shape[1]):
+                    if non_zero_mask[i, j]:
+                        if self.output_pixels[k] == value:
+                            mask[i][j] = self.color_map.get(value, self.color_map[None])
+                        else:
+                            mask[i][j] = self.color_map.get(None)
+                        k += 1
                     else:
                         mask[i][j] = self.color_map.get(None)
             self.colored_mask[key] = mask
