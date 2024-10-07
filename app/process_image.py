@@ -4,8 +4,9 @@ import numpy as np, io
 from PIL import Image
 
 def get_area(image, scale):
-    count = np.count_nonzero(image)
-    return (count*scale)/10**6
+    non_black_pixels = np.count_nonzero(np.any(image != [0, 0, 0], axis=-1))
+    area_km2 = (non_black_pixels * scale**2) / 10**6
+    return area_km2
 
 def preprocess(image_array, is255):
     if image_array.ndim != 3 or image_array.shape[2] != 3:
