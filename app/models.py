@@ -35,7 +35,7 @@ class Models(ImageMask):
             self.threshold[key] = int(value)
         def classify_pixel(pixel, means, thresholds, inv_cov_key):
             distances = {}
-            for i, key in enumerate(means, 1):
+            for key, i in self.features.items():
                 distance = mahalanobis(pixel, means[key], inv_cov_key[key])
                 if distance < thresholds[key]:
                     distances[i] = distance
@@ -54,7 +54,7 @@ class Models(ImageMask):
         threshold = 10**(-int(self.threshold))
         for i, pixel in enumerate(self.non_zero_img_array):
             max_likelihood = -np.inf
-            for k, key in enumerate(self.mean, 1):
+            for key, k in self.features.items():
                 likelihood = multivariate_normal(mean=self.mean[key], cov=self.cov[key]).pdf(pixel)
                 if likelihood > max_likelihood and likelihood > threshold:
                     max_likelihood = likelihood
