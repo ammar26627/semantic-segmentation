@@ -32,7 +32,12 @@ class Models(ImageMask):
     
     def mahalanobis(self): 
         for key, value in self.threshold.items():
-            self.threshold[key] = int(value)
+            value = int(value)
+            if value <= 0:
+                value = 1
+            elif value > 10:
+                value = 9
+            self.threshold[key] = value
         def classify_pixel(pixel, means, thresholds, inv_cov_key):
             distances = {}
             for key, i in self.features.items():
@@ -51,6 +56,14 @@ class Models(ImageMask):
 
 
     def maximumLikelyHood(self):
+        
+        if not self.threshold:
+            self.threshold = 10
+        self.threshold = int(self.threshold)
+        if self.threshold < 5:
+            self.threshold = 5
+        elif self.threshold > 15:
+            self.threshold = 15
         threshold = 10**(-int(self.threshold))
         for i, pixel in enumerate(self.non_zero_img_array):
             max_likelihood = -np.inf
