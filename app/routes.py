@@ -9,8 +9,8 @@ from app.gee_image import GeeImage
 import base64
 from collections import defaultdict
 from googleapiclient.errors import HttpError
-# from test import test
 
+ip_set = set()
 
 # Create a Blueprint for routes
 api_bp = Blueprint('api', __name__)
@@ -21,13 +21,15 @@ def gee_image():
     """
     Endpoint to get a Google Earth Engine image based on the region of interest (ROI).
     """
+    ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+    ip_set.add(ip_address)
     image = GeeImage()
     roi_data = request.json
     try:
         image.setRoiData(roi_data)  # Set the ROI in the image
         image.getImage()  # Fetch the image based on ROI
     except Exception as e:
-        return 'Selected ROI too large or an error has occured while fetching satellite imagery. Please refresh and retry', 400
+        return 'Selected ROI too large. Please select an area less scale of 5 KM. Please refresh and retry', 400
 
     norm_image = image.getNormalizedImage()  # Normalize the image for processing
 
@@ -86,5 +88,9 @@ def checkResource():
 
 @api_bp.route('/')
 def default():
-    # test()
     return intro(), 200
+
+@api_bp.route('/get_ip')
+def ip():
+    ip_address = list(ip_set)
+    return jsonify(ip_address), 200
