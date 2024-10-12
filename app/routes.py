@@ -21,8 +21,6 @@ def gee_image():
     """
     Endpoint to get a Google Earth Engine image based on the region of interest (ROI).
     """
-    ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
-    ip_set.add(ip_address)
     image = GeeImage()
     roi_data = request.json
     try:
@@ -94,3 +92,10 @@ def default():
 def ip():
     ip_address = list(ip_set)
     return jsonify(ip_address), 200
+
+@api_bp.route('/set_ip')
+def set_ip():
+    ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+    ip_set.add(ip_address)
+    return "Ip Recieved", 200
+
