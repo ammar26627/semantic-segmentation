@@ -9,17 +9,20 @@ class GeeImage():
     def __init__(self) -> None:
         self.roi = []
         self.bands = []
-        self.scale = 30
+        self.scale = 30 # Set to dynamic
         self.img_array = []
         self.normalized_image = []
         self.sentinal_image = None
         self.start_date = '2023-03-01'
         self.end_date = '2023-03-31'
+        self.height = None
+        self.area = None
 
     def setRoiData(self, data):
         self.roi = data['geojson'][0]['geometry']['coordinates'][0]
         self.bands = [ band for band in data['bands'].values()]
-        self.scale = 30
+        self.scale = data['scale']
+        self.height = data['height']
         if data.get('date', None):
             self.start_date = data['date']
             date_obj = datetime.strptime(self.start_date, '%Y-%m-%d')
