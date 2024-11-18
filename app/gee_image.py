@@ -16,12 +16,12 @@ class GeeImage():
         self.img_array = []
         self.normalized_image = []
         self.satellite_image = None
-        self.start_date = '2024-03-01'
+        self.start_date = '2021-12-01'
         self.end_date = '2024-03-31'
         self.area = 0
         self.satellite = None
         self.scale = 30
-        self.satellite = 'LANDSAT/LC09/C02/T1_L2'
+        self.satellite = 'COPERNICUS/S2_SR_HARMONIZED'
         self.MAX_PIXELS = 12_582_912
 
     def setRoiData(self, data):
@@ -29,11 +29,11 @@ class GeeImage():
         # print(self.roi)
         self.bands = [band for band in data['bands'].values()]
         # self.scale = data['scale']
-        if data.get('date', None):
-            self.start_date = data['date']
-            date_obj = datetime.strptime(self.start_date, '%Y-%m-%d')
-            new_date = date_obj + relativedelta(months=1)
-            self.end_date = new_date.strftime('%Y-%m-%d')
+        # if data.get('date', None):
+        #     self.start_date = data['date']
+        #     date_obj = datetime.strptime(self.start_date, '%Y-%m-%d')
+        #     new_date = date_obj + relativedelta(months=1)
+        #     self.end_date = new_date.strftime('%Y-%m-%d')
 
     
     def getImage(self):
@@ -43,7 +43,7 @@ class GeeImage():
         print(self.roi)
         print(self.area)
         print(self.scale)
-        start_date = '2024-01-01'
+        start_date = '2021-12-01'
         end_date = '2024-02-01'
         self.bands = ['B4', 'B3', 'B2']  # True Color bands (Red, Green, Blue)
 
@@ -57,18 +57,19 @@ class GeeImage():
         self.normalized_image = (self.img_array - np.min(self.img_array)) / (np.max(self.img_array) - np.min(self.img_array))
 
     def setScale(self):
-        scale = math.sqrt(self.area/self.MAX_PIXELS)
-        scale_list = [10, 30,] #500
-        satellite_list = ['COPERNICUS/S2_SR_HARMONIZED', 'LANDSAT/LC09/C02/T1_L2',] #'MODIS/006/MOD09GA'
-        for i, sc in enumerate(scale_list):
-            if scale <= sc:
-                self.scale = sc
-                self.satellite = satellite_list[i]
-                break
-        else:
-            self.scale = scale_list[-1]
-            self.satellite = satellite_list[-1]
-            
+        # scale = math.sqrt(self.area/self.MAX_PIXELS)
+        # scale_list = [30,] #500 30
+        # satellite_list = ['LANDSAT/LC09/C02/T1_L2',] #'MODIS/006/MOD09GA'  'COPERNICUS/S2_SR_HARMONIZED', 
+        # for i, sc in enumerate(scale_list):
+        #     if scale <= sc:
+        #         self.scale = sc
+        #         self.satellite = satellite_list[i]
+        #         break
+        # else:
+        #     self.scale = scale_list[-1]
+        #     self.satellite = satellite_list[-1]
+        self.scale = 10
+
     def getBands(self):
         return self.bands
 
