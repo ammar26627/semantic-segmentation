@@ -23,11 +23,13 @@ def gee_image():
     """
     image = GeeImage()
     roi_data = request.json
-    try:
-        image.setRoiData(roi_data)  # Set the ROI in the image
-        image.getImage()  # Fetch the image based on ROI
-    except Exception as e:
-        return 'Selected ROI too large. Please select an area less scale of 5 KM. Please refresh and retry', 400
+    image.setRoiData(roi_data)  # Set the ROI in the image
+    image.getImage()  # Fetch the image based on ROI
+    # try:
+    #     image.setRoiData(roi_data)  # Set the ROI in the image
+    #     image.getImage()  # Fetch the image based on ROI
+    # except Exception as e:
+    #     return 'Selected ROI too large. Please select an area less scale of 5 KM. Please refresh and retry', 400
 
     norm_image = image.getNormalizedImage()  # Normalize the image for processing
 
