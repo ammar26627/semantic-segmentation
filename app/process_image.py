@@ -23,6 +23,7 @@ def preprocess(image_array, is255):
     rgba_image[:, :, 3] = 255
     rgba_image[black_pixel_mask, 3] = 0
     img = Image.fromarray(rgba_image, 'RGBA')
+    img.save("./image.png")
     image_png_io = io.BytesIO()
     img.save(image_png_io, format="PNG")
     image_png_io.seek(0)
