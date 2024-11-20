@@ -38,16 +38,47 @@ class GeeImage():
     
     def getImage(self):
         roi = ee.Geometry.Polygon([self.roi])
-        self.area = roi.area().getInfo()
+        dw_col = ee.ImageCollection('GOOGLE/DYNAMICWORLD/V1') \
+            .filterBounds(roi) \
+            .filterDate(self.start_date, self.end_date)
 
-        self.satellite_image = ee.ImageCollection(self.satellite) \
-            .filterBounds(self.roi) \
+        # Load Sentinel-2 Image Collection and apply cloud masking
+        s2_col = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED') \
+            .filterBounds(roi) \
             .filterDate(self.start_date, self.end_date) \
-            .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)) \
-            .mean()
+            .map(lambda image: image.updateMask(image.select('QA60').eq(0)))  # Mask clouds using QA60 band
 
-        image_clipped = self.satellite_image.clip(roi)
-        self.img_array = geemap.ee_to_numpy(image_clipped, region=roi, bands=self.bands, scale=self.scale)
+        # Link Dynamic World and Sentinel-2 Collections (alignment)
+        linked_col = dw_col.linkCollection(s2_col, s2_col.first().bandNames())
+
+        # Get the first linked image (Dynamic World and Sentinel-2)
+        linked_img = ee.Image(linked_col.first())
+
+        # Visualization palette for Dynamic World land cover classes
+        vis_palette = [
+            '419bdf', '397d49', '88b053', '7a87c6', 'e49635', 'dfc35a',
+            'c4281b', 'a59b8f', 'b39fe1'
+        ]
+
+        # Create RGB visualization from the 'label' band (land cover classification)
+        dw_rgb = linked_img.select('label').visualize(min=0, max=8, palette=vis_palette)
+
+        # Get the most likely class probability
+        class_names = [
+            'water', 'trees', 'grass', 'flooded_vegetation', 'crops',
+            'shrub_and_scrub', 'built', 'bare', 'snow_and_ice'
+        ]
+
+        top1_prob = linked_img.select(class_names).reduce(ee.Reducer.max())
+
+        # Create a hillshade effect for the most likely class probability
+        top1_prob_hillshade = ee.Terrain.hillshade(top1_prob.multiply(100)).divide(255)
+
+        # Combine RGB visualization with the hillshade effect
+        dw_rgb_hillshade = dw_rgb.multiply(top1_prob_hillshade)
+
+        self.img_array = geemap.ee_to_numpy(dw_rgb_hillshade, region=roi, scale=10)
+        self.img_array = np.flipud(self.img_array)  # Correct orientation if rotated
         self.normalized_image = (self.img_array - np.min(self.img_array)) / (np.max(self.img_array) - np.min(self.img_array))
 
 
