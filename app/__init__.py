@@ -8,6 +8,8 @@ from datetime import timedelta
 import ee, os, json
 from google.oauth2.service_account import Credentials
 from app.routes import api_bp
+# from flask_socketio import SocketIO
+
 
 def create_app():
 
@@ -20,7 +22,7 @@ def create_app():
     app.config['SESSION_COOKIE_SECURE'] = True
 
     Session(app)
-
+    # socketio = SocketIO(app, cors_allowed_origins="*")
     CORS(app, supports_credentials=True)
 
     initialize_earth_engine()

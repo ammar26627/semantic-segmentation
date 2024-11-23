@@ -1,14 +1,19 @@
 # app/route.py
 
-from flask import jsonify, send_file, request, Blueprint, session
-from app.process_image import preprocess, get_area
+# from app import socketio
+from flask import jsonify, send_file, request, Blueprint, session, Response
+from app.process_image import preprocess, get_area, preprocess_multiband
 from app.extras import log_resource_usage, intro
 from app.models import Models
 from app.mask import ImageMask
 from app.gee_image import GeeImage
-import base64
+import base64, json, threading
+from queue import Queue
 from collections import defaultdict
 from googleapiclient.errors import HttpError
+from app.image_thread import ImageThread
+from flask_socketio import SocketIO, emit
+
 
 ip_set = set()
 
@@ -16,32 +21,69 @@ ip_set = set()
 api_bp = Blueprint('api', __name__)
 
 
+
+
 @api_bp.route('/get_gee_image', methods=['POST'])
 def gee_image():
     """
     Endpoint to get a Google Earth Engine image based on the region of interest (ROI).
     """
-    image = GeeImage()
     roi_data = request.json
+    # Initialize GeeImage and set ROI
+    image = GeeImage()
     image.setRoiData(roi_data)  # Set the ROI in the image
-    image.getImage()  # Fetch the image based on ROI
-    # try:
-    #     image.setRoiData(roi_data)  # Set the ROI in the image
-    #     image.getImage()  # Fetch the image based on ROI
-    # except Exception as e:
-    #     return 'Selected ROI too large. Please select an area less scale of 5 KM. Please refresh and retry', 400
 
-    norm_image = image.getNormalizedImage()  # Normalize the image for processing
+    session['image'] = image
+    print(image.roi_array)
 
-    session['image'] = image.img_array
-    session['band'] = image.bands
-    session['scale'] = image.scale
-    session['start_date'] = image.start_date
-    session['end_date'] = image.end_date
-    image_png = preprocess(norm_image, False)  # Preprocess the image (Remove black background)
-    
-    # Send the image as a response
-    return send_file(image_png, mimetype='image/png'), 200
+
+    return jsonify({'status': "Stream Started"}), 200
+    # def generate():
+    #     while True:
+    #         message = sse_queue.get()  # Blocks until a message is available
+    #         if message == "Done":
+    #             break
+    #         yield f"data: {json.dumps(message)}\n\n"
+
+    # image_thread = ImageThread(function=image.getImage, sse_queue=sse_queue)
+    # # image_thread.image_with_thread_pool(num_threads=4, items=image.roi_array)
+    # threading.Thread(target=image_thread.image_with_thread_pool, args=(4, image.roi_array)).start()
+
+    # # Signal the end of the stream
+    # # sse_queue.put("DONE")
+
+    # # Return an SSE response
+    # return Response(generate(), mimetype='text/event-stream')
+
+@api_bp.route('/stream_images', methods=['GET'])
+def stream_images():
+    """
+    SSE endpoint to stream processed images.
+"""
+    # Retrieve ROI array from session
+    image = session.get('image')
+    try:
+        if not image.roi_array:
+            return jsonify({'error': 'No ROI data found'}), 400
+    except Exception as e:
+        print(e)
+    print(image.roi_array)
+
+
+    sse_queue = Queue()
+
+    def generate():
+        while True:
+            message = sse_queue.get()
+            if message == "Done":
+                yield f"data: {json.dumps({'status': 'done'})}\n\n"
+                break
+            yield f"data: {json.dumps(message)}\n\n"
+
+    image_thread = ImageThread(function=image.getImage, sse_queue=sse_queue)
+    threading.Thread(target=image_thread.image_with_thread_pool, args=(4, image.roi_array)).start()
+    return Response(generate(), mimetype='text/event-stream')
+    # return "200", 200
 
 @api_bp.route('/get_mask', methods=['POST'])
 def generate_mask():

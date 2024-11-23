@@ -3,7 +3,7 @@
 import ee, geemap, numpy as np
 from dateutil.relativedelta import relativedelta
 from datetime import datetime
-from app.satellite_image import SatelliteImage
+from app.satellite_image import SubPolygon
 from app.scale import Scale
 from pyproj import Geod
 import math
@@ -21,13 +21,35 @@ class GeeImage():
         self.end_date = '2024-03-31'
         self.area = 0
         self.satellite = None
-        self.scale = None
+        self.scale = 30
         self.satellite = None
         self.MAX_PIXELS = 12_582_912
+        self.roi_array = []
 
     def setRoiData(self, data):
         self.roi = data['geojson'][0]['geometry']['coordinates'][0]
+        polygon_array = SubPolygon(self.roi)
+        self.roi_array = polygon_array.getSubPolygons()
         self.bands = [band for band in data['bands'].values()]
+        # self.bands = [
+        #             'B1',       # Coastal Aerosol
+        #             'B2',       # Blue
+        #             'B3',       # Green
+        #             'B4',       # Red
+        #             'B5',       # Red Edge 1
+        #             'B6',       # Red Edge 2
+        #             'B7',       # Red Edge 3
+        #             'B8',       # NIR
+        #             'B8A',      # Narrow NIR
+        #             'B9',       # Water Vapor
+        #             # 'B10',      # SWIR - Cirrus
+        #             'B11',      # SWIR 1
+        #             'B12',      # SWIR 2
+        #             # 'NDVI',     # Normalized Difference Vegetation Index
+        #             # 'NDWI',     # Normalized Difference Water Index
+        #             # 'NDBI',     # Normalized Difference Built-up Index
+        #             # 'Elevation' # Elevation
+        #         ]
         # self.scale = data['scale']
         # if data.get('date', None):
         #     self.start_date = data['date']
@@ -36,19 +58,35 @@ class GeeImage():
         #     self.end_date = new_date.strftime('%Y-%m-%d')
 
     
-    def getImage(self):
-        roi = ee.Geometry.Polygon([self.roi])
-        self.area = roi.area().getInfo()
+    def getImage(self, coord):
+        roi = ee.Geometry.Polygon([coord])
+        # self.area = roi.area().getInfo()
 
-        self.satellite_image = ee.ImageCollection(self.satellite) \
-            .filterBounds(self.roi) \
+        self.satellite_image = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED') \
+            .filterBounds(roi) \
             .filterDate(self.start_date, self.end_date) \
             .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)) \
             .mean()
-
+        
         image_clipped = self.satellite_image.clip(roi)
-        self.img_array = geemap.ee_to_numpy(image_clipped, region=roi, bands=self.bands, scale=self.scale)
-        self.normalized_image = (self.img_array - np.min(self.img_array)) / (np.max(self.img_array) - np.min(self.img_array))
+        img_array = geemap.ee_to_numpy(image_clipped, region=roi, bands=self.bands, scale=self.scale)
+        normalized_image = (img_array - np.min(img_array)) / (np.max(img_array) - np.min(img_array))
+        geoJson = self.toGeojson(coord)
+        self.img_array.append((img_array, geoJson))
+        return (normalized_image, geoJson)
+
+        # roi = ee.Geometry.Polygon([self.roi])
+        # self.area = roi.area().getInfo()
+
+        # self.satellite_image = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED') \
+        #     .filterBounds(roi) \
+        #     .filterDate(self.start_date, self.end_date) \
+        #     .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)) \
+        #     .mean()
+
+        # image_clipped = self.satellite_image.clip(roi)
+        # self.img_array = geemap.ee_to_numpy(image_clipped, region=roi, bands=self.bands, scale=self.scale)
+        # self.normalized_image = (self.img_array - np.min(self.img_array)) / (np.max(self.img_array) - np.min(self.img_array))
 
 
     def getBands(self):
@@ -59,3 +97,27 @@ class GeeImage():
     
     def getNormalizedImage(self):
         return self.normalized_image
+    
+    @staticmethod
+    def toGeojson(coord):
+        geoJson = {
+            'type': 'FeatureCollection',
+            'features': [
+                {
+                'type': 'Feature',
+                'properties': {},
+                'geometry': {
+                    'coordinates': [
+                        coord
+                    ],
+                    'type': 'Polygon'
+                }
+                }
+            ]
+        }
+        return geoJson
+    
+
+
+
+
