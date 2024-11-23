@@ -31,25 +31,7 @@ class GeeImage():
         polygon_array = SubPolygon(self.roi)
         self.roi_array = polygon_array.getSubPolygons()
         self.bands = [band for band in data['bands'].values()]
-        # self.bands = [
-        #             'B1',       # Coastal Aerosol
-        #             'B2',       # Blue
-        #             'B3',       # Green
-        #             'B4',       # Red
-        #             'B5',       # Red Edge 1
-        #             'B6',       # Red Edge 2
-        #             'B7',       # Red Edge 3
-        #             'B8',       # NIR
-        #             'B8A',      # Narrow NIR
-        #             'B9',       # Water Vapor
-        #             # 'B10',      # SWIR - Cirrus
-        #             'B11',      # SWIR 1
-        #             'B12',      # SWIR 2
-        #             # 'NDVI',     # Normalized Difference Vegetation Index
-        #             # 'NDWI',     # Normalized Difference Water Index
-        #             # 'NDBI',     # Normalized Difference Built-up Index
-        #             # 'Elevation' # Elevation
-        #         ]
+        
         # self.scale = data['scale']
         # if data.get('date', None):
         #     self.start_date = data['date']
