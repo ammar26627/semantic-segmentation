@@ -13,7 +13,7 @@ from collections import defaultdict
 from googleapiclient.errors import HttpError
 from app.image_thread import ImageThread
 from flask_socketio import SocketIO, emit
-
+import os
 
 ip_set = set()
 
@@ -32,9 +32,18 @@ def gee_image():
     # Initialize GeeImage and set ROI
     image = GeeImage()
     image.setRoiData(roi_data)  # Set the ROI in the image
-
-    session['image'] = image
-    print(image.roi_array)
+    images_dir = './images'
+    if not os.path.exists(images_dir):
+      os.makedirs(images_dir)
+    mask_dir = './masks'
+    if not os.path.exists(mask_dir):
+      os.makedirs(mask_dir)
+      print("Directory created successfully!")
+    image_thread = ImageThread(function=image.getImage)
+    threading.Thread(target=image_thread.image_with_thread_pool, args=(4, image.roi_array)).start()
+    # return Response(generate(), mimetype='text/event-stream')
+    # session['image'] = image
+    # print(image.roi_array)
 
 
     return jsonify({'status': "Stream Started"}), 200
@@ -55,34 +64,34 @@ def gee_image():
     # # Return an SSE response
     # return Response(generate(), mimetype='text/event-stream')
 
-@api_bp.route('/stream_images', methods=['GET'])
-def stream_images():
-    """
-    SSE endpoint to stream processed images.
-"""
-    # Retrieve ROI array from session
-    image = session.get('image')
-    try:
-        if not image.roi_array:
-            return jsonify({'error': 'No ROI data found'}), 400
-    except Exception as e:
-        print(e)
-    print(image.roi_array)
+# @api_bp.route('/stream_images', methods=['GET'])
+# def stream_images():
+#     """
+#     SSE endpoint to stream processed images.
+# """
+#     # Retrieve ROI array from session
+#     image = session.get('image')
+#     try:
+#         if not image.roi_array:
+#             return jsonify({'error': 'No ROI data found'}), 400
+#     except Exception as e:
+#         print(e)
+#     print(image.roi_array)
 
 
-    sse_queue = Queue()
+#     sse_queue = Queue()
 
-    def generate():
-        while True:
-            message = sse_queue.get()
-            if message == "Done":
-                yield f"data: {json.dumps({'status': 'done'})}\n\n"
-                break
-            yield f"data: {json.dumps(message)}\n\n"
+#     def generate():
+#         while True:
+#             message = sse_queue.get()
+#             if message == "Done":
+#                 yield f"data: {json.dumps({'status': 'done'})}\n\n"
+#                 break
+#             yield f"data: {json.dumps(message)}\n\n"
 
-    image_thread = ImageThread(function=image.getImage, sse_queue=sse_queue)
-    threading.Thread(target=image_thread.image_with_thread_pool, args=(4, image.roi_array)).start()
-    return Response(generate(), mimetype='text/event-stream')
+#     image_thread = ImageThread(function=image.getImage, sse_queue=sse_queue)
+#     threading.Thread(target=image_thread.image_with_thread_pool, args=(4, image.roi_array)).start()
+#     return Response(generate(), mimetype='text/event-stream')
     # return "200", 200
 
 @api_bp.route('/get_mask', methods=['POST'])

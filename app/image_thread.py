@@ -3,22 +3,19 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from io import BytesIO
 from app.process_image import preprocess
 
+
 class ImageThread:
-    def __init__(self, function, sse_queue):
+    def __init__(self, function):
         self.function = function
-        self.sse_queue = sse_queue
 
     def worker(self, coord, i):
         # Call the image processing function
-        image = self.function(coord)
-        image_png = preprocess(image[0], False, i)  # Your preprocessing function
-        base_64 = base64.b64encode(image_png.getvalue()).decode('utf-8')  # Convert to base64
+        mask, image = self.function(coord)
+        image_png = preprocess(image, False)  # Your preprocessing function
+        mask_png = preprocess(mask, False)
+        image_png.save(f'./images/image_{i}.png')
+        mask_png.save(f'./masks/mask_{i}.png')
         
-        self.sse_queue.put({
-            "status": "completed",
-            "coordinates": self.toGeojson(coord),
-            "image": base_64
-        })
 
     
 
@@ -28,7 +25,6 @@ class ImageThread:
             futures = [executor.submit(self.worker, item, i) for i, item in enumerate(items)]
             for future in as_completed(futures):
                 future.result()  # Wait for each task to complete
-        self.sse_queue.put("Done")
 
     @staticmethod
     def toGeojson(coord):
