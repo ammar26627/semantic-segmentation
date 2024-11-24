@@ -31,11 +31,11 @@ class GeeImage():
         
         """ORIGINAL ROI"""
 
-    # def setRoiData(self, data):
-    #     self.roi = data['geojson'][0]['geometry']['coordinates'][0]
-    #     polygon_array = SubPolygon(self.roi)
-    #     self.roi_array = polygon_array.getSubPolygons()
-    #     self.bands = [band for band in data['bands'].values()]
+    def setRoiData(self, data):
+        self.roi = data['geojson'][0]['geometry']['coordinates'][0]
+        polygon_array = SubPolygon(self.roi)
+        self.roi_array = polygon_array.getSubPolygons()
+        self.bands = [band for band in data['bands'].values()]
         
         # self.scale = data['scale']
         # if data.get('date', None):
@@ -48,26 +48,26 @@ class GeeImage():
         """ORIGINAL ROI END"""
         
         
-        """MRADUL ROI"""
+    #     """MRADUL ROI"""
         
-    def setRoiData(self, data):
-        geometry = data["geojson"][0]["geometry"]
-        type_ = geometry["type"]
-        match type_:
-            case "Polygon":
-                coordinates = [geometry["coordinates"]]
-            case "MultiPolygon":
-                coordinates = geometry["coordinates"]
-            case _:
-                print("Invalid geometry type")
-        for coordinate in coordinates:
-            roi = coordinate[0]
-            polygon_array = SubPolygon(roi)
-            self.roi.extend(roi)
-            self.roi_array.extend(polygon_array.getSubPolygons())
-        self.bands = [band for band in data["bands"].values()]
+    # def setRoiData(self, data):
+    #     geometry = data["geojson"][0]["geometry"]
+    #     type_ = geometry["type"]
+    #     match type_:
+    #         case "Polygon":
+    #             coordinates = [geometry["coordinates"]]
+    #         case "MultiPolygon":
+    #             coordinates = geometry["coordinates"]
+    #         case _:
+    #             print("Invalid geometry type")
+    #     for coordinate in coordinates:
+    #         roi = coordinate[0]
+    #         polygon_array = SubPolygon(roi)
+    #         self.roi.extend(roi)
+    #         self.roi_array.extend(polygon_array.getSubPolygons())
+    #     self.bands = [band for band in data["bands"].values()]
         
-        """MRADUL ROI END"""
+    #     """MRADUL ROI END"""
         
 
     

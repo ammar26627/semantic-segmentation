@@ -28,10 +28,10 @@ def gee_image():
     """
     Endpoint to get a Google Earth Engine image based on the region of interest (ROI).
     """
-    # roi_data = request.json
+    roi_data = request.json
     
-    with open('data.json') as file:
-        roi_data = json.load(file)  
+    # with open('data.json') as file:
+    #     roi_data = json.load(file)  
 
     # Initialize GeeImage and set ROI
     image = GeeImage()
