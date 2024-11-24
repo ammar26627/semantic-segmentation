@@ -19,14 +19,15 @@ class GeeImage():
         self.mask_array = []
         self.normalized_mask = []
         self.satellite_image = None
-        self.start_date = '2016-04-01'
-        self.end_date = '2024-01-31'
+        self.start_date = '2021-01-01'
+        self.end_date = '2022-01-31'
         self.area = 0
         self.satellite = None
         self.scale = 30
         self.satellite = None
         self.MAX_PIXELS = 12_582_912
         self.roi_array = []
+        self.roi_coord_array = []
 
     def setRoiData(self, data):
         self.roi = data['geojson'][0]['geometry']['coordinates'][0]
@@ -65,21 +66,20 @@ class GeeImage():
 
             return scaled
 
-        dw_col = ee.ImageCollection('GOOGLE/DYNAMICWORLD/V1') \
-            .filterBounds(roi) \
-            .filterDate(self.start_date, self.end_date)
-        
-        # s2_col = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED') \
+        # dw_col = ee.ImageCollection('GOOGLE/DYNAMICWORLD/V1') \
         #     .filterBounds(roi) \
-        #     .filterDate(self.start_date, self.end_date) \
-        #     .map(lambda image: image.updateMask(image.select('QA60').eq(0))) \
-        #     .sort('CLOUDY_PIXEL_PERCENTAGE') \
-
+        #     .filterDate(self.start_date, self.end_date)
+        
         satellite_image = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED') \
             .filterBounds(roi) \
             .filterDate(self.start_date, self.end_date) \
-            .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)) \
-            .mean()
+            .first()
+
+        # satellite_image = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED') \
+        #     .filterBounds(roi) \
+        #     .filterDate(self.start_date, self.end_date) \
+        #     .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)) \
+        #     .mean()
         
         sentinal_image = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED') \
             .filterBounds(roi) \
@@ -90,27 +90,27 @@ class GeeImage():
                 
 
                 
-        linked_col = dw_col.linkCollection(satellite_image, satellite_image.bandNames())
+        # linked_col = dw_col.linkCollection(satellite_image, satellite_image.bandNames())
 
         # Get the first linked image (Dynamic World and Sentinel-2)
-        linked_img = ee.Image(linked_col.first())
+        # linked_img = ee.Image(linked_col.first())
 
         # Visualization palette for Dynamic World land cover classes
-        vis_palette = [
-            '419bdf', '397d49', '88b053', '7a87c6', 'e49635', 'dfc35a',
-            'c4281b', 'a59b8f', 'b39fe1'
-        ]
+        # vis_palette = [
+        #     '419bdf', '397d49', '88b053', '7a87c6', 'e49635', 'dfc35a',
+        #     'c4281b', 'a59b8f', 'b39fe1'
+        # ]
 
         # Create RGB visualization from the 'label' band (land cover classification)
-        dw_rgb = linked_img.select('label').visualize(min=0, max=8, palette=vis_palette)
+        # dw_rgb = linked_img.select('label').visualize(min=0, max=8, palette=vis_palette)
 
         # Get the most likely class probability
-        class_names = [
-            'water', 'trees', 'grass', 'flooded_vegetation', 'crops',
-            'shrub_and_scrub', 'built', 'bare', 'snow_and_ice'
-        ]
+        # class_names = [
+        #     'water', 'trees', 'grass', 'flooded_vegetation', 'crops',
+        #     'shrub_and_scrub', 'built', 'bare', 'snow_and_ice'
+        # ]
 
-        top1_prob = linked_img.select(class_names).reduce(ee.Reducer.max())
+        # top1_prob = linked_img.select(class_names).reduce(ee.Reducer.max())
 
         # Create a hillshade effect for the most likely class probability
         # top1_prob_hillshade = ee.Terrain.hillshade(top1_prob.multiply(100)).divide(255)
@@ -129,9 +129,34 @@ class GeeImage():
         normalized_image = (img_array - np.min(img_array)) / (np.max(img_array) - np.min(img_array))
         # self.img_array.append(img_array)
         # self.normalized_image.append(normalized_image)
+        worldcover = ee.ImageCollection('ESA/WorldCover/v100').first().clip(roi)
 
-        mask_array = geemap.ee_to_numpy(dw_rgb, region=roi, scale=30)
-        mask_array = np.flipud(mask_array)  # Correct orientation if rotated
+        # Clip to ROI
+        # worldcover_clipped = worldcover.clip(roi)
+
+        vis_params = {
+            'min': 10,
+            'max': 100,
+            'palette': [
+                '006400',  # Trees (10) - dark green
+                'ffbb22',  # Shrubland (20) - orange
+                'ffff4c',  # Grassland (30) - yellow
+                'f096ff',  # Cropland (40) - pink
+                'fa0000',  # Built-up (50) - red
+                'b4b4b4',  # Bare/sparse (60) - gray
+                '0064c8',  # Snow/ice (70) - blue
+                '0096a0',  # Water (80) - cyan
+                '00cf75',  # Wetland (90) - light green
+                'fae6a0'   # Mangroves (95) - beige
+            ]
+        }
+
+        # Visualization parameters for 'Map' band
+        # worldcoverclip = worldcover.select('Map')
+        worldcover_rgb = worldcover.visualize(**vis_params)
+        
+        mask_array = geemap.ee_to_numpy(worldcover_rgb, region=roi, scale=self.scale)
+        # mask_array = np.flipud(mask_array)  # Correct orientation if rotated
         normalized_mask = (mask_array - np.min(mask_array)) / (np.max(mask_array) - np.min(mask_array))
         # self.mask_array.append(mask_array)
         # self.normalized_mask.append(normalized_mask)
