@@ -19,20 +19,23 @@ class GeeImage():
         self.mask_array = []
         self.normalized_mask = []
         self.satellite_image = None
-        self.start_date = '2016-04-01'
-        self.end_date = '2024-01-31'
+        self.start_date = '2020-04-01'
+        self.end_date = '2022-01-31'
         self.area = 0
         self.satellite = None
         self.scale = 30
         self.satellite = None
         self.MAX_PIXELS = 12_582_912
         self.roi_array = []
+        
+        
+        """ORIGINAL ROI"""
 
-    def setRoiData(self, data):
-        self.roi = data['geojson'][0]['geometry']['coordinates'][0]
-        polygon_array = SubPolygon(self.roi)
-        self.roi_array = polygon_array.getSubPolygons()
-        self.bands = [band for band in data['bands'].values()]
+    # def setRoiData(self, data):
+    #     self.roi = data['geojson'][0]['geometry']['coordinates'][0]
+    #     polygon_array = SubPolygon(self.roi)
+    #     self.roi_array = polygon_array.getSubPolygons()
+    #     self.bands = [band for band in data['bands'].values()]
         
         # self.scale = data['scale']
         # if data.get('date', None):
@@ -40,6 +43,32 @@ class GeeImage():
         #     date_obj = datetime.strptime(self.start_date, '%Y-%m-%d')
         #     new_date = date_obj + relativedelta(months=1)
         #     self.end_date = new_date.strftime('%Y-%m-%d')
+        
+        
+        """ORIGINAL ROI END"""
+        
+        
+        """MRADUL ROI"""
+        
+    def setRoiData(self, data):
+        geometry = data["geojson"][0]["geometry"]
+        type_ = geometry["type"]
+        match type_:
+            case "Polygon":
+                coordinates = [geometry["coordinates"]]
+            case "MultiPolygon":
+                coordinates = geometry["coordinates"]
+            case _:
+                print("Invalid geometry type")
+        for coordinate in coordinates:
+            roi = coordinate[0]
+            polygon_array = SubPolygon(roi)
+            self.roi.extend(roi)
+            self.roi_array.extend(polygon_array.getSubPolygons())
+        self.bands = [band for band in data["bands"].values()]
+        
+        """MRADUL ROI END"""
+        
 
     
     def getImage(self, coord):
