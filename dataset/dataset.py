@@ -25,7 +25,7 @@ class Dataset(GeeImage):
 if 'name' == '__main__':
     initialize_earth_engine()
     file_name = 'Uttar_Pradesh'
-    with open(f'./{file_name}.json') as f:
+    with open(f'./states/{file_name}.json') as f:
         data = json.load(f)
     os.makedirs(f'./images/{file_name}')
     os.makedirs(f'./masks/{file_name}')
