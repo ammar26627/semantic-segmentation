@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from app.process_image import preprocess
+from process_image import preprocess
 
 
 class ImageThread:
