@@ -92,14 +92,11 @@ def generate_mask():
     """
     class_data = request.json
     if 'image' in session:
-        img_array = session['image']
-        bands = session['band']
-        scale = session['scale']
-        start_date = session['start_date']
-        end_date = session['end_date']
-        mask = Models(bands, scale, img_array, start_date, end_date)
+        image = session['image']
     else:
         return 'Please select an ROI first. If the problem persist, enable cookies in the browser.', 400
+
+    mask = Models(image.bands, image.scale, img_array, image.start_date, image.end_date)
     
     try:
         mask.setClassData(class_data)  # Set the class data in the image
