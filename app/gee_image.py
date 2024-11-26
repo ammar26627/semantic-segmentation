@@ -27,6 +27,21 @@ class GeeImage():
         self.roi_array = []
 
     def setRoiData(self, data):
+        # geometry = data["features"][0]["geometry"]
+        # type_ = geometry["type"]
+        # match type_:
+        #     case "Polygon":
+        #         coordinates = [geometry["coordinates"]]
+        #     case "MultiPolygon":
+        #         coordinates = geometry["coordinates"]
+        #     case _:
+        #         print("Invalid geometry type")
+        # for coordinate in coordinates:
+        #     roi = coordinate[0]
+        #     polygon_array = SubPolygon(roi)
+        #     self.roi.extend(roi)
+        #     self.roi_array.extend(polygon_array.getSubPolygons())
+        # self.bands = ['B4', 'B3', 'B2']
         self.roi = data['geojson'][0]['geometry']['coordinates'][0]
         polygon_array = SubPolygon(self.roi)
         self.roi_array = polygon_array.getSubPolygons()

@@ -8,7 +8,7 @@ def get_area(image, scale):
     area_km2 = (non_black_pixels * scale**2) / 10**6
     return area_km2
 
-def preprocess(image_array, is255, i):
+def preprocess(image_array, is255):
     print('In preprocess')
     if image_array.ndim != 3 or image_array.shape[2] != 3:
         raise ValueError("Input image_array must be an RGB image array with shape (height, width, 3).")
@@ -24,8 +24,8 @@ def preprocess(image_array, is255, i):
     rgba_image[:, :, 3] = 255
     rgba_image[black_pixel_mask, 3] = 0
     img = Image.fromarray(rgba_image, 'RGBA')
-    print("processing image", i)
-    img.save(f"./images/{i}.png")
+    # print("processing image", i)
+    # img.save(f"./images/{i}.png")
     # img.save(f'{i}.png')
     image_png_io = io.BytesIO()
     img.save(image_png_io, format="PNG")

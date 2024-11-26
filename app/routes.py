@@ -31,6 +31,8 @@ def gee_image():
     roi_data = request.json
     # Initialize GeeImage and set ROI
     image = GeeImage()
+    # with open('app/Andaman_and_Nicobar.json') as f:
+    #     roi_data = json.load(f)
     image.setRoiData(roi_data)  # Set the ROI in the image
 
     session['image'] = image
@@ -67,7 +69,6 @@ def stream_images():
             return jsonify({'error': 'No ROI data found'}), 400
     except Exception as e:
         print(e)
-    print(image.roi_array)
 
 
     sse_queue = Queue()
@@ -80,13 +81,13 @@ def stream_images():
                 break
             yield f"data: {json.dumps(message)}\n\n"
 
-    image_thread = ImageThread(function=image.getImage, sse_queue=sse_queue)
+    image_thread = ImageThread(image.getImage, sse_queue)
     threading.Thread(target=image_thread.image_with_thread_pool, args=(4, image.roi_array)).start()
     return Response(generate(), mimetype='text/event-stream')
     # return "200", 200
 
 @api_bp.route('/get_mask', methods=['POST'])
-def gee_image():
+def get_mask():
     """
     Endpoint to get a Google Earth Engine image based on the region of interest (ROI).
     """

@@ -2,11 +2,14 @@ import base64
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from io import BytesIO
 from app.process_image import preprocess, get_area
+from collections import defaultdict
+from app.models import Models
 
 class ImageThread:
     def __init__(self, helper, queue):
         self.helper = helper
         self.area = defaultdict(list)
+        self.queue = queue
         
 
     def worker(self, coord, i):
@@ -14,7 +17,7 @@ class ImageThread:
         image = self.helper(coord)
         image_png = preprocess(image[0], False)  # Your preprocessing function
         base_64 = base64.b64encode(image_png.getvalue()).decode('utf-8')  # Convert to base64
-        
+        print('Processing image', i)
         self.queue.put({
             "status": "Loading",
             "coordinates": self.toGeojson(coord),
