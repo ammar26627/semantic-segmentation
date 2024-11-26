@@ -5,11 +5,10 @@ from app.gee_image import GeeImage
 from collections import defaultdict
 
 class ImageMask():
-    def __init__(self, bands, scale, img_array, start_date, end_date) -> None:
+    def __init__(self, bands, scale, start_date, end_date) -> None:
         self.features = {}
         self.bands = bands
         self.scale = scale
-        self.img_array = img_array
         self.start_date = start_date
         self.end_date = end_date
         self.features_geometries = None

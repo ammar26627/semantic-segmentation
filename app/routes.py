@@ -86,6 +86,20 @@ def stream_images():
     # return "200", 200
 
 @api_bp.route('/get_mask', methods=['POST'])
+def gee_image():
+    """
+    Endpoint to get a Google Earth Engine image based on the region of interest (ROI).
+    """
+    class_data = request.json
+    image_mask = ImageMask()
+    image_mask.setClassData(class_data)
+
+    session['image_mask'] = image_mask
+
+
+    return jsonify({'status': "Stream Started"}), 200
+
+@api_bp.route('/get_mask_stream', methods=['GET'])
 def generate_mask():
     """
     Endpoint to generate a colored mask based on class data.
@@ -93,10 +107,23 @@ def generate_mask():
     class_data = request.json
     if 'image' in session:
         image = session['image']
+        image_mask = session['image_mask']
     else:
         return 'Please select an ROI first. If the problem persist, enable cookies in the browser.', 400
+    
+    mask_queue = Queue()
+    def generate():
+        while True:
+            message = mask_queue.get()
+            if message['status'] == "Completed":
+                yield f"data: {json.dumps(message)}\n\n"
+                break
+            yield f"data: {json.dumps(message)}\n\n"
+    image_thread = ImageThread(helper=image_mask, sse_queue=mask_queue)
+    threading.Thread(target=image_thread.image_with_thread_pool, args=(4, image.roi_array, True)).start()
+    return Response(generate(), mimetype='text/event-stream')
 
-    mask = Models(image.bands, image.scale, img_array, image.start_date, image.end_date)
+    mask = Models(image.bands, image.scale, image.img_array, image.start_date, image.end_date)
     
     try:
         mask.setClassData(class_data)  # Set the class data in the image

@@ -7,9 +7,21 @@ import numpy as np
 from collections import defaultdict
 from sklearn.ensemble import RandomForestClassifier
 
-class Models(ImageMask):
-    def __init__(self, bands, scale, img_array, start_date, end_date) -> None:
-        super().__init__(bands, scale, img_array, start_date, end_date)
+class Models:
+    def __init__(self,  img_array, image_mask_obj) -> None:
+        self.img_array = img_array
+        self.bands = image_mask_obj.bands
+        self.scale = image_mask_obj.scale
+        self.start_date = image_mask_obj.start_date
+        self.end_date = image_mask_obj.end_date
+        self.features = image_mask_obj.features
+        self.color_map = image_mask_obj.color_map
+        self.model = image_mask_obj.model
+        self.mean = image_mask_obj.mean
+        self.cov = image_mask_obj.cov
+        self.threshold = image_mask_obj.threshold
+        self.X_train = image_mask_obj.X_train
+        self.y_train = image_mask_obj.y_train
         reshaped_array = self.img_array.reshape((-1, len(self.bands)))
         self.non_zero_mask = (reshaped_array != 0).any(axis=1)
         self.non_zero_img_array = reshaped_array[self.non_zero_mask]
