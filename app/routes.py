@@ -37,7 +37,7 @@ def gee_image():
     session['start_date'] = image.start_date
     session['end_date'] = image.end_date
     image_png = preprocess(norm_image, False)  # Preprocess the image (Remove black background)
-    
+
     # Send the image as a response
     return send_file(image_png, mimetype='image/png'), 200
 
@@ -56,7 +56,7 @@ def generate_mask():
         mask = Models(bands, scale, img_array, start_date, end_date)
     else:
         return 'Please select an ROI first. If the problem persist, enable cookies in the browser.', 400
-    
+
     try:
         mask.setClassData(class_data)  # Set the class data in the image
         colored_mask_pngs = mask.getColoredMask()  # Get the colored mask images
@@ -99,3 +99,23 @@ def set_ip():
     ip_set.add(ip_address)
     return "Ip Recieved", 200
 
+
+@api_bp.route("/image-url")
+def image_url():
+    image = GeeImage()
+    roi_data = request.json
+    try:
+        image.setRoiData(roi_data)  # Set the ROI in the image
+        image_url = image.getImageUrl()  # Fetch the image based on ROI
+        session["band"] = image.bands
+        session["scale"] = image.scale
+        session["start_date"] = image.start_date
+        session["end_date"] = image.end_date
+        session["image_url"] = image_url
+        response = {"image_url": image_url}
+        return jsonify(response), 200
+    except Exception as e:
+        return (
+            "Selected ROI too large. Please select an area less scale of 5 KM. Please refresh and retry",
+            400,
+        )

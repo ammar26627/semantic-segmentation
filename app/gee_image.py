@@ -4,7 +4,8 @@ import ee, geemap, numpy as np
 from dateutil.relativedelta import relativedelta
 from datetime import datetime
 
-class GeeImage():
+
+class GeeImage:
 
     def __init__(self) -> None:
         self.roi = []
@@ -13,38 +14,64 @@ class GeeImage():
         self.img_array = []
         self.normalized_image = []
         self.sentinal_image = None
-        self.start_date = '2023-03-01'
-        self.end_date = '2023-03-31'
+        self.start_date = "2023-03-01"
+        self.end_date = "2023-03-31"
 
     def setRoiData(self, data):
-        self.roi = data['geojson'][0]['geometry']['coordinates'][0]
-        self.bands = [ band for band in data['bands'].values()]
+        self.roi = data["geojson"][0]["geometry"]["coordinates"][0]
+        self.bands = [band for band in data["bands"].values()]
         self.scale = 30
-        if data.get('date', None):
-            self.start_date = data['date']
-            date_obj = datetime.strptime(self.start_date, '%Y-%m-%d')
+        if data.get("date", None):
+            self.start_date = data["date"]
+            date_obj = datetime.strptime(self.start_date, "%Y-%m-%d")
             new_date = date_obj + relativedelta(months=1)
-            self.end_date = new_date.strftime('%Y-%m-%d')
+            self.end_date = new_date.strftime("%Y-%m-%d")
 
-    
     def getImage(self):
         roi = ee.Geometry.Polygon([self.roi])
-        self.sentinal_image = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED') \
-        .filterBounds(roi) \
-        .filterDate(self.start_date, self.end_date) \
-        .sort('CLOUDY_PIXEL_PERCENTAGE') \
-        .first() \
-        .select(self.bands)
+        self.sentinal_image = (
+            ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+            .filterBounds(roi)
+            .filterDate(self.start_date, self.end_date)
+            .sort("CLOUDY_PIXEL_PERCENTAGE")
+            .first()
+            .select(self.bands)
+        )
         image_clipped = self.sentinal_image.clip(roi)
-        self.img_array = geemap.ee_to_numpy(image_clipped, region=roi, bands=self.bands, scale=self.scale)
-        self.normalized_image = (self.img_array - np.min(self.img_array)) / (np.max(self.img_array) - np.min(self.img_array))
+        self.img_array = geemap.ee_to_numpy(
+            image_clipped, region=roi, bands=self.bands, scale=self.scale
+        )
+        self.normalized_image = (self.img_array - np.min(self.img_array)) / (
+            np.max(self.img_array) - np.min(self.img_array)
+        )
+
+    def getImageUrl(self):
+        roi = ee.Geometry.Polygon([self.roi])
+
+        sentinel2 = (
+            ee.ImageCollection("COPERNICUS/S2_SR")
+            .filterBounds(roi)
+            .filterDate("2023-01-01", "2023-12-31")
+            .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 10))
+            .median()
+            .clip(roi)
+        )
+        vis_params = {
+            "bands": ["B4", "B3", "B2"],  # RGB bands
+            "min": 0,
+            "max": 3000,
+            "gamma": 1,
+        }
+
+        # Generate tile URL for dynamic scaling
+        map_id_dict = sentinel2.getMapId(vis_params)
+        return map_id_dict["tile_fetcher"].url_format
 
     def getBands(self):
         return self.bands
 
     def getRawImage(self):
         return self.img_array
-    
+
     def getNormalizedImage(self):
         return self.normalized_image
-
