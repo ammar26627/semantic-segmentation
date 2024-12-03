@@ -26,22 +26,24 @@ class GeeImage():
         self.MAX_PIXELS = 12_582_912
         self.roi_array = []
 
+    def getstatesRoi(self, data):
+        geometry = data["features"][0]["geometry"]
+        type_ = geometry["type"]
+        match type_:
+            case "Polygon":
+                coordinates = [geometry["coordinates"]]
+            case "MultiPolygon":
+                coordinates = geometry["coordinates"]
+            case _:
+                print("Invalid geometry type")
+        for coordinate in coordinates:
+            roi = coordinate[0]
+            polygon_array = SubPolygon(roi)
+            self.roi.extend(roi)
+            self.roi_array.extend(polygon_array.getSubPolygons())
+        self.bands = ['B4', 'B3', 'B2']
+
     def setRoiData(self, data):
-        # geometry = data["features"][0]["geometry"]
-        # type_ = geometry["type"]
-        # match type_:
-        #     case "Polygon":
-        #         coordinates = [geometry["coordinates"]]
-        #     case "MultiPolygon":
-        #         coordinates = geometry["coordinates"]
-        #     case _:
-        #         print("Invalid geometry type")
-        # for coordinate in coordinates:
-        #     roi = coordinate[0]
-        #     polygon_array = SubPolygon(roi)
-        #     self.roi.extend(roi)
-        #     self.roi_array.extend(polygon_array.getSubPolygons())
-        # self.bands = ['B4', 'B3', 'B2']
         self.roi = data['geojson'][0]['geometry']['coordinates'][0]
         polygon_array = SubPolygon(self.roi)
         self.roi_array = polygon_array.getSubPolygons()
@@ -59,31 +61,66 @@ class GeeImage():
         roi = ee.Geometry.Polygon([coord])
         # self.area = roi.area().getInfo()
 
-        self.satellite_image = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED') \
-            .filterBounds(roi) \
-            .filterDate(self.start_date, self.end_date) \
-            .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)) \
-            .mean()
+        def mask_s2_clouds(image):
+            qa = image.select('QA60')  # QA60 band for cloud/cirrus
+            cloud_bit_mask = 1 << 10
+            cirrus_bit_mask = 1 << 11
+            mask = qa.bitwiseAnd(cloud_bit_mask).eq(0).And(qa.bitwiseAnd(cirrus_bit_mask).eq(0))
+            return image.updateMask(mask).divide(10000)
+
+        # Fetch Sentinel-2 image collection
+        sentinal_collection = (
+            ee.ImageCollection('COPERNICUS/S2_SR')
+            .filterDate(self.start_date, self.end_date)
+            .filterBounds(roi)
+            .map(mask_s2_clouds)
+        )
+
+        sentinal_image = sentinal_collection.median().select(self.bands)
+        sentinal_band = sentinal_image.select(self.bands[0])
+        crs = sentinal_band.projection().crs().getInfo()
+        sentinal_image = sentinal_image.reproject(crs=crs, scale=self.scale).clip(roi)
         
-        image_clipped = self.satellite_image.clip(roi)
+        image_clipped = sentinal_image.clip(roi)
         img_array = geemap.ee_to_numpy(image_clipped, region=roi, bands=self.bands, scale=self.scale)
         normalized_image = (img_array - np.min(img_array)) / (np.max(img_array) - np.min(img_array))
         geoJson = self.toGeojson(coord)
         self.img_array.append((img_array, geoJson))
         return (normalized_image, geoJson)
 
-        # roi = ee.Geometry.Polygon([self.roi])
-        # self.area = roi.area().getInfo()
 
-        # self.satellite_image = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED') \
-        #     .filterBounds(roi) \
-        #     .filterDate(self.start_date, self.end_date) \
-        #     .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)) \
-        #     .mean()
+    def getImageUrl(self):
+        roi = ee.Geometry.Polygon([self.roi])
 
-        # image_clipped = self.satellite_image.clip(roi)
-        # self.img_array = geemap.ee_to_numpy(image_clipped, region=roi, bands=self.bands, scale=self.scale)
-        # self.normalized_image = (self.img_array - np.min(self.img_array)) / (np.max(self.img_array) - np.min(self.img_array))
+        def mask_s2_clouds(image):
+            qa = image.select('QA60')  # QA60 band for cloud/cirrus
+            cloud_bit_mask = 1 << 10
+            cirrus_bit_mask = 1 << 11
+            mask = qa.bitwiseAnd(cloud_bit_mask).eq(0).And(qa.bitwiseAnd(cirrus_bit_mask).eq(0))
+            return image.updateMask(mask).divide(10000)
+
+        # Fetch Sentinel-2 image collection
+        sentinal_collection = (
+            ee.ImageCollection('COPERNICUS/S2_SR')
+            .filterDate(self.start_date, self.end_date)
+            .filterBounds(roi)
+            .map(mask_s2_clouds)
+        )
+
+        sentinal_image = sentinal_collection.median().select(self.bands)
+        sentinal_band = sentinal_image.select(self.bands[0])
+        crs = sentinal_band.projection().crs().getInfo()
+        sentinal_image = sentinal_image.reproject(crs=crs, scale=self.scale).clip(roi)
+
+        vis_params = {
+            "bands": self.bands,  # RGB bands
+            "min": 0,
+            "max": 3000,
+        }
+
+        # Generate tile URL for dynamic scaling
+        map_id_dict = sentinal_image.getMapId(vis_params)
+        return map_id_dict["tile_fetcher"].url_format
 
 
     def getBands(self):

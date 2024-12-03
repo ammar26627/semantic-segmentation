@@ -148,9 +148,28 @@ def generate_mask():
 
     return jsonify(response)
 
+@api_bp.route("/image-url")
+def image_url():
+    image = GeeImage()
+    roi_data = request.json
+    try:
+        image.setRoiData(roi_data)  # Set the ROI in the image
+        image_url = image.getImageUrl()  # Fetch the image based on ROI
+        session["band"] = image.bands
+        session["scale"] = image.scale
+        session["start_date"] = image.start_date
+        session["end_date"] = image.end_date
+        session["image_url"] = image_url
+        response = {"image_url": image_url}
+        return jsonify(response), 200
+    except Exception as e:
+        return (
+            "Selected ROI too large. Please select an area less scale of 5 KM. Please refresh and retry",
+            400,
+        )
+
 @api_bp.route("/resource_usage")
 def checkResource():
-
     return log_resource_usage(), 200
 
 @api_bp.route('/')
