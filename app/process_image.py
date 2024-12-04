@@ -26,7 +26,6 @@ def preprocess(image_array, is255):
     img = Image.fromarray(rgba_image, 'RGBA')
     # print("processing image", i)
     # img.save(f"./images/{i}.png")
-    # img.save(f'{i}.png')
     image_png_io = io.BytesIO()
     img.save(image_png_io, format="PNG")
     image_png_io.seek(0)

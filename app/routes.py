@@ -13,6 +13,8 @@ from collections import defaultdict
 from googleapiclient.errors import HttpError
 from app.image_thread import ImageThread
 from flask_socketio import SocketIO, emit
+from app.combine_image import merge_images_with_geojson
+from PIL import Image
 
 
 ip_set = set()
@@ -36,7 +38,7 @@ def gee_image():
     image.setRoiData(roi_data)  # Set the ROI in the image
 
     session['image'] = image
-    print(image.roi_array)
+
 
 
     return jsonify({'status': "Stream Started"}), 200
@@ -76,15 +78,37 @@ def stream_images():
     def generate():
         while True:
             message = sse_queue.get()
-            if message == "Done":
+            if message['status'] == "Completed":
                 yield f"data: {json.dumps({'status': 'done'})}\n\n"
+                # print("Completed straming now saving image")
+                # merger = merge_images_with_geojson(image.img_array, 30)
+                # print(merger)
+                
+                # preprocessed_image = preprocess(merger, False)
+                
+                # with open("combine.png", "wb") as f:
+                #     f.write(preprocessed_image.getvalue())
+                # print("sent")
+                # yield f"data: {json.dumps({'status': 'done'})}\n\n"
                 break
             yield f"data: {json.dumps(message)}\n\n"
 
     image_thread = ImageThread(image.getImage, sse_queue)
-    threading.Thread(target=image_thread.image_with_thread_pool, args=(4, image.roi_array)).start()
+    threading.Thread(target=image_thread.image_with_thread_pool, args=(50, image.roi_array)).start()
     return Response(generate(), mimetype='text/event-stream')
     # return "200", 200
+
+# @api_bp.route('/get_big_images', methods=['GET'])
+# def large_image():
+#     img_array = session.get('array')
+#     print(img_array)
+#     combined_image = merge_images(img_array, 30)
+#     preprocessed_image = preprocess(combined_image, False)
+#     return send_file(
+#             preprocessed_image, 
+#             mimetype="image/png", 
+#         )
+
 
 @api_bp.route('/get_mask', methods=['POST'])
 def get_mask():

@@ -13,11 +13,10 @@ class GeeImage():
     def __init__(self) -> None:
         self.roi = []
         self.bands = []
-        self.scale = 30 # Set to dynamic
         self.img_array = []
         self.normalized_image = []
         self.satellite_image = None
-        self.start_date = '2024-01-01'
+        self.start_date = '2023-01-01'
         self.end_date = '2024-03-31'
         self.area = 0
         self.satellite = None
@@ -62,15 +61,14 @@ class GeeImage():
         # self.area = roi.area().getInfo()
 
         def mask_s2_clouds(image):
-            qa = image.select('QA60')  # QA60 band for cloud/cirrus
-            cloud_bit_mask = 1 << 10
-            cirrus_bit_mask = 1 << 11
-            mask = qa.bitwiseAnd(cloud_bit_mask).eq(0).And(qa.bitwiseAnd(cirrus_bit_mask).eq(0))
+            cloud_prob_mask = image.select('MSK_CLDPRB').lt(50)  # Cloud probability threshold (less than 50%)
+            cirrus_mask = image.select('MSK_CLASSI_CIRRUS').eq(0)  # No cirrus clouds
+            mask = cloud_prob_mask.And(cirrus_mask)
             return image.updateMask(mask).divide(10000)
 
         # Fetch Sentinel-2 image collection
         sentinal_collection = (
-            ee.ImageCollection('COPERNICUS/S2_SR')
+            ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
             .filterDate(self.start_date, self.end_date)
             .filterBounds(roi)
             .map(mask_s2_clouds)
@@ -82,10 +80,12 @@ class GeeImage():
         sentinal_image = sentinal_image.reproject(crs=crs, scale=self.scale).clip(roi)
         
         image_clipped = sentinal_image.clip(roi)
+        sentinal_bounds = image_clipped.geometry().bounds().getInfo()
+        print(coord, sentinal_bounds)
         img_array = geemap.ee_to_numpy(image_clipped, region=roi, bands=self.bands, scale=self.scale)
         normalized_image = (img_array - np.min(img_array)) / (np.max(img_array) - np.min(img_array))
         geoJson = self.toGeojson(coord)
-        self.img_array.append((img_array, geoJson))
+        self.img_array.append((normalized_image, sentinal_bounds))
         return (normalized_image, geoJson)
 
 
