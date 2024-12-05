@@ -31,6 +31,50 @@ def gee_image():
     Endpoint to get a Google Earth Engine image based on the region of interest (ROI).
     """
     roi_data = request.json
+    roi_data = {
+    "geojson": [
+        {
+            "type": "Feature",
+            "properties": {
+                "roi": "Aligarh",
+                "fill": "#800080"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            76.59221687258076,
+                            28.979550388465597
+                        ],
+                        [
+                            76.59221687258076,
+                            28.148311356185218
+                        ],
+                        [
+                            77.86516932883694,
+                            28.148311356185218
+                        ],
+                        [
+                            77.86516932883694,
+                            28.979550388465597
+                        ],
+                        [
+                            76.59221687258076,
+                            28.979550388465597
+                        ]
+                    ]
+                ]
+            }
+        }
+    ],
+    "bands": {
+        "band1": "B4",
+        "band2": "B3",
+        "band3": "B2"
+    },
+    "height": 30
+}
     # Initialize GeeImage and set ROI
     image = GeeImage()
     # with open('app/Andaman_and_Nicobar.json') as f:
@@ -79,7 +123,7 @@ def stream_images():
         while True:
             message = sse_queue.get()
             if message['status'] == "Completed":
-                yield f"data: {json.dumps({'status': 'done'})}\n\n"
+                # yield message
                 # print("Completed straming now saving image")
                 # merger = merge_images_with_geojson(image.img_array, 30)
                 # print(merger)
@@ -89,7 +133,7 @@ def stream_images():
                 # with open("combine.png", "wb") as f:
                 #     f.write(preprocessed_image.getvalue())
                 # print("sent")
-                # yield f"data: {json.dumps({'status': 'done'})}\n\n"
+                yield f"data: {json.dumps({'status': 'done'})}\n\n"
                 break
             yield f"data: {json.dumps(message)}\n\n"
 

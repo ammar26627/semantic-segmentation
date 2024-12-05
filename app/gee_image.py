@@ -85,7 +85,7 @@ class GeeImage():
         img_array = geemap.ee_to_numpy(image_clipped, region=roi, bands=self.bands, scale=self.scale)
         normalized_image = (img_array - np.min(img_array)) / (np.max(img_array) - np.min(img_array))
         geoJson = self.toGeojson(coord)
-        self.img_array.append((normalized_image, sentinal_bounds))
+        self.img_array.append((normalized_image, coord))
         return (normalized_image, geoJson)
 
 
