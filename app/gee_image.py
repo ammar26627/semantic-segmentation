@@ -78,15 +78,17 @@ class GeeImage():
         sentinal_band = sentinal_image.select(self.bands[0])
         crs = sentinal_band.projection().crs().getInfo()
         sentinal_image = sentinal_image.reproject(crs=crs, scale=self.scale).clip(roi)
-        
+
+        # Clip the resulting image to the ROI
         image_clipped = sentinal_image.clip(roi)
+        image_clipped = image_clipped.updateMask(image_clipped.clip(roi).mask())
         sentinal_bounds = image_clipped.geometry().bounds().getInfo()
-        print(coord, sentinal_bounds)
         img_array = geemap.ee_to_numpy(image_clipped, region=roi, bands=self.bands, scale=self.scale)
+        img_array = np.flipud(img_array)
         normalized_image = (img_array - np.min(img_array)) / (np.max(img_array) - np.min(img_array))
         geoJson = self.toGeojson(coord)
-        self.img_array.append((normalized_image, coord))
-        return (normalized_image, geoJson)
+        self.img_array.append((img_array, sentinal_bounds['coordinates'][0]))
+        return (normalized_image, sentinal_bounds['coordinates'][0])
 
 
     def getImageUrl(self):

@@ -48,12 +48,23 @@ class ImageMask():
         combine_ee_geometry = all_geometries[0]
         for element in all_geometries[1:]:
             combine_ee_geometry = combine_ee_geometry.union(element)
-        self.feature_image = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED') \
-        .filterBounds(combine_ee_geometry) \
-        .filterDate(self.start_date, self.end_date) \
-        .sort('CLOUDY_PIXEL_PERCENTAGE') \
-        .first() \
-        .select(self.bands)
+
+        def mask_s2_clouds(image):
+            cloud_prob_mask = image.select('MSK_CLDPRB').lt(50)  # Cloud probability threshold (less than 50%)
+            cirrus_mask = image.select('MSK_CLASSI_CIRRUS').eq(0)  # No cirrus clouds
+            mask = cloud_prob_mask.And(cirrus_mask)
+            return image.updateMask(mask).divide(10000)
+        
+        feature_collection = (
+            ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+            .filterDate(self.start_date, self.end_date)
+            .filterBounds(combine_ee_geometry)
+            .map(mask_s2_clouds)
+        )
+        feature_image = feature_collection.median().select(self.bands)
+        sentinal_band = feature_image.select(self.bands[0])
+        crs = sentinal_band.projection().crs().getInfo()
+        self.feature_image = feature_image.reproject(crs=crs, scale=self.scale).clip(combine_ee_geometry)
 
         training_pixels = []
         training_lables = []
