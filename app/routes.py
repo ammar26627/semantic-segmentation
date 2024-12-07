@@ -35,6 +35,22 @@ def image():
     image = GeeImage()
     image.setRoiData(roi_data)  # Set the ROI in the image
 
+    session['image'] = image  # Save the image object in the session
+    return jsonify({'status': 'Image data recieved'}), 200
+
+@api_bp.route('/stream_images', methods=['GET'])
+def stream_images():
+    """
+    SSE endpoint to stream processed images.
+"""
+    image = session.get('image')
+    try:
+        if not image.roi_array:
+            return jsonify({'error': 'No ROI data found'}), 400
+    except Exception as e:
+        print(e)
+
+
     image_queue = Queue()
 
     # For streaming the image
@@ -52,34 +68,6 @@ def image():
     threading.Thread(target=image_thread.image_with_thread_pool, args=(50, image.roi_array)).start()
     return Response(stream_with_context(generate(), mimetype='text/event-stream'))
 
-# @api_bp.route('/stream_images', methods=['GET'])
-# def stream_images():
-#     """
-#     SSE endpoint to stream processed images.
-# """
-#     image = session.get('image')
-#     try:
-#         if not image.roi_array:
-#             return jsonify({'error': 'No ROI data found'}), 400
-#     except Exception as e:
-#         print(e)
-
-
-#     sse_queue = Queue()
-
-#     def generate():
-#         while True:
-#             message = sse_queue.get()
-#             if message['status'] == "Completed":
-#                 global global_image_array
-#                 global_image_array = image.img_array
-#                 print("sent")
-#                 yield f"data: {message}\n\n"
-#                 break
-#             yield f"data: {json.dumps(message)}\n\n"
-#     image_thread = ImageThread(image.getImage, sse_queue)
-#     threading.Thread(target=image_thread.image_with_thread_pool, args=(50, image.roi_array)).start()
-#     return Response(stream_with_context(generate(), mimetype='text/event-stream'))
 
 
 @api_bp.route('/machine_learning', methods=['POST'])
