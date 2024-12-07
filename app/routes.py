@@ -87,7 +87,9 @@ def machineLearning():
     """
     Endpoint to get a Google Earth Engine image based on the region of interest (ROI).
     """
-    class_data = request.json
+    data = request.json
+    roi_data = data['roi_data']
+    class_data = data['class_data']
     if api_bp.config['TESTING']:
         with open('testing/sample_test_json/masks/area_1.json', 'r') as file:
             class_data = json.load(file)
