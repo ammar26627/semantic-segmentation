@@ -5,10 +5,9 @@ from app.gee_image import GeeImage
 from collections import defaultdict
 
 class ImageMask():
-    def __init__(self, bands, scale, start_date, end_date) -> None:
+    def __init__(self, bands, start_date, end_date) -> None:
         self.features = {}
         self.bands = bands
-        self.scale = scale
         self.start_date = start_date
         self.end_date = end_date
         self.features_geometries = None
@@ -24,7 +23,7 @@ class ImageMask():
 
     def setClassData(self, data):
         self.features_geometries = defaultdict(list)
-        for i, element in enumerate(data['geojson'], 1):
+        for i, element in enumerate(data, 1):
             class_name = element['properties']['class']
             self.features_geometries[class_name].append(element['geometry']['coordinates'][0])
             if class_name not in self.features:

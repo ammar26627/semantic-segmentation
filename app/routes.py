@@ -1,18 +1,16 @@
 # app/route.py
 
 # from app import socketio
-from flask import jsonify, request, Blueprint, session, Response, stream_with_context
-from app.process_image import preprocess, get_area
+from flask import jsonify, request, Blueprint, session, Response, stream_with_context, current_app
 from app.extras import log_resource_usage, intro
-from app.models import Models
 from app.mask import ImageMask
 from app.gee_image import GeeImage
-import base64, json, threading
+import json, threading
 from queue import Queue
-from collections import defaultdict
-from app.image_thread import ImageThread
-from keras import models
-from keras import preprocessing
+from app.threading import ImageThread
+from app.subpolygon import SubPolygon
+# from keras import models
+# from keras import preprocessing
 
 
 ip_set = set()
@@ -21,65 +19,16 @@ ip_set = set()
 api_bp = Blueprint('api', __name__)
 
 
-@api_bp.route('/image', methods=['POST'])
-def image():
-    """
-    Endpoint to get a Google Earth Engine image based on the region of interest (ROI).
-    """
-    roi_data = request.json
-    if api_bp.config['TESTING']:
-        with open('/testing/sample_test_json/images/area_1.json', 'r') as file:
-            roi_data = json.load(file)
-
-    # Initialize GeeImage and set ROI
+@api_bp.route("/images", methods=['POST'])
+def image_url():
+    url_data = request.json
     image = GeeImage()
-    image.setRoiData(roi_data)  # Set the ROI in the image
+    image.setRoiData(url_data)  # Set the ROI in the image
+    image_url = image.getImageUrl()  # Fetch the image based on ROI
+    response = {f"image_url": str(image_url), "access_token": current_app.config['ACCESS_TOKEN']}
+    session["image"] = image
+    return jsonify(response), 200
 
-    image_queue = Queue()
-
-    # For streaming the image
-    def generate():
-        print("Starting stream...")
-        while True:
-            message = image_queue.get()
-            if message['status'] == "Completed":
-                yield f"data: {message}\n\n"
-                print("Data sent, Closing connection")
-                break
-            yield f"data: {json.dumps(message)}\n\n"
-
-    image_thread = ImageThread(image.getImage, image_queue)
-    threading.Thread(target=image_thread.image_with_thread_pool, args=(50, image.roi_array)).start()
-    return Response(stream_with_context(generate(), mimetype='text/event-stream'))
-
-# @api_bp.route('/stream_images', methods=['GET'])
-# def stream_images():
-#     """
-#     SSE endpoint to stream processed images.
-# """
-#     image = session.get('image')
-#     try:
-#         if not image.roi_array:
-#             return jsonify({'error': 'No ROI data found'}), 400
-#     except Exception as e:
-#         print(e)
-
-
-#     sse_queue = Queue()
-
-#     def generate():
-#         while True:
-#             message = sse_queue.get()
-#             if message['status'] == "Completed":
-#                 global global_image_array
-#                 global_image_array = image.img_array
-#                 print("sent")
-#                 yield f"data: {message}\n\n"
-#                 break
-#             yield f"data: {json.dumps(message)}\n\n"
-#     image_thread = ImageThread(image.getImage, sse_queue)
-#     threading.Thread(target=image_thread.image_with_thread_pool, args=(50, image.roi_array)).start()
-#     return Response(stream_with_context(generate(), mimetype='text/event-stream'))
 
 
 @api_bp.route('/machine_learning', methods=['POST'])
@@ -88,14 +37,26 @@ def machineLearning():
     Endpoint to get a Google Earth Engine image based on the region of interest (ROI).
     """
     data = request.json
-    roi_data = data['roi_data']
-    class_data = data['class_data']
-    if api_bp.config['TESTING']:
-        with open('testing/sample_test_json/masks/area_1.json', 'r') as file:
-            class_data = json.load(file)
+    class_data = data['classGeojson']
+    roi_data = data['roi']
+    print(data)
     image = session.get('image')
-    image_mask = ImageMask(bands=image.bands, scale=image.scale, start_date=image.start_date, end_date=image.end_date)
+    if not image.img_array:
+        roi = roi_data['geometry']['coordinates'][0] 
+        polygon_array = SubPolygon(roi)
+        image.roi_array = polygon_array.getSubPolygons()
+    image_mask = ImageMask(bands=image.bands, start_date=image.start_date, end_date=image.end_date)
     image_mask.setClassData(class_data)
+    session['image_mask'] = image_mask
+    return jsonify({"status": "Class data set."}), 200
+
+@api_bp.route('/machine_learning_stream', methods=['GET'])
+def machineLearningStream():
+    """
+    Endpoint to get a Google Earth Engine image based on the region of interest (ROI).
+    """
+    image = session.get('image')
+    image_mask = session.get('image_mask')
 
     mask_queue = Queue()
 
@@ -110,9 +71,15 @@ def machineLearning():
                 print("Data sent, Closing connection")
                 break
             yield f"data: {json.dumps(message)}\n\n"
-    image_thread = ImageThread(helper=image_mask, queue=mask_queue)
-    threading.Thread(target=image_thread.image_with_thread_pool, args=(50, image.img_array, True)).start()
-    return Response(generate(), mimetype='text/event-stream')
+    image_thread = ImageThread(img_object=image, mask_object=image_mask, queue=mask_queue)
+    if not image.img_array:
+        function = 'ml'
+        items = image.roi_array
+    else:
+        function = 'image_ml'
+        items = image.img_array
+    threading.Thread(target=image_thread.thread_pool, args=(50, items, function)).start()
+    return Response(stream_with_context(generate()), content_type='text/event-stream')
 
 
 @api_bp.route('/deep_learning', methods=['POST'])
@@ -142,7 +109,7 @@ def deepLearning():
                 break
             yield f"data: {json.dumps(message)}\n\n"
     image_thread = ImageThread(helper=image_mask, queue=mask_queue)
-    threading.Thread(target=image_thread.image_with_thread_pool, args=(50, image.img_array, True)).start()
+    threading.Thread(target=image_thread.thread_pool, args=(50, image.img_array, True)).start()
     return Response(generate(), mimetype='text/event-stream')
 
 
@@ -196,26 +163,6 @@ def deepLearning():
     # session.pop('end_date', None)
 
     # return jsonify(response)
-
-@api_bp.route("/image-url")
-def image_url():
-    image = GeeImage()
-    roi_data = request.json
-    try:
-        image.setRoiData(roi_data)  # Set the ROI in the image
-        image_url = image.getImageUrl()  # Fetch the image based on ROI
-        session["band"] = image.bands
-        session["scale"] = image.scale
-        session["start_date"] = image.start_date
-        session["end_date"] = image.end_date
-        session["image_url"] = image_url
-        response = {"image_url": image_url}
-        return jsonify(response), 200
-    except Exception as e:
-        return (
-            "Selected ROI too large. Please select an area less scale of 5 KM. Please refresh and retry",
-            400,
-        )
 
 @api_bp.route("/resource_usage")
 def checkResource():
