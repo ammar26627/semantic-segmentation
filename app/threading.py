@@ -1,6 +1,6 @@
 # app/threading.py
 
-import base64, numpy as np
+import base64, numpy as np, cv2
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from app.process_image import preprocess, get_area
 from collections import defaultdict
@@ -25,6 +25,7 @@ class ImageThread:
         self.ml(image[0], image[1])
     
     def ml(self, image, coord):
+        print(image)
         mask = Models(image, self.object)
         mask_pngs = mask.getColoredMask()
         masks_base_64 = {}
@@ -33,6 +34,7 @@ class ImageThread:
             self.area[key] += get_area(mask_png, 30)
             png = preprocess(mask_png, True)
             masks_base_64[key] = base64.b64encode(png.getvalue()).decode('utf-8')
+        print(masks_base_64)
         self.queue.put({
             "status": "Loading...",
             "top_left": self.get_top_left_coordinate(coord[:-1]),
@@ -106,3 +108,64 @@ class ImageThread:
             ]
         }
         return geoJson
+    
+    @staticmethod
+    def generate_geojson_from_dict(image_dict, corners, geojson_data, color_map, epsilon_factor=0.001, contour_area_threshold=10):
+
+        height, width, _ = next(iter(image_dict.values())).shape  # Assuming all images have the same shape
+        top_left, top_right, bottom_right, bottom_left = corners
+
+        # Functions for coordinate transformations
+        def pixel_to_geo(pixel):
+            return (
+                float(top_left[0] + (pixel[0] / width) * (top_right[0] - top_left[0])),
+                float(top_left[1] + (pixel[1] / height) * (bottom_left[1] - top_left[1]))
+            )
+
+        # Process each class and its corresponding image
+        for class_name, image in image_dict.items():
+            # Get the class color from the predefined color map (normalized RGB to 0-255)
+            class_color = color_map.get(class_name)
+            if class_color is None:
+                print(f"Error: No color mapping found for class '{class_name}'. Skipping.")
+                continue
+            # Convert normalized color to 0-255 range
+            class_color = tuple(int(c * 255) for c in class_color)
+
+            # Convert normalized image to 0-255 range
+            image = (image * 255).astype(np.uint8)
+
+            # Convert image to a binary mask based on class color
+            mask = cv2.inRange(image, class_color, class_color)
+            binary_mask = cv2.threshold(mask, 1, 255, cv2.THRESH_BINARY)[1]
+
+            # Find contours for the current class in the image
+            contours, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+            for contour in contours:
+                if cv2.contourArea(contour) < contour_area_threshold:
+                    continue
+
+                # Simplify the contour
+                epsilon = epsilon_factor * cv2.arcLength(contour, True)
+                polygon = cv2.approxPolyDP(contour, epsilon, True)
+
+                # Convert pixel coordinates to geographic coordinates
+                coordinates = [pixel_to_geo(tuple(pt[0])) for pt in polygon]
+
+                # Ensure the polygon is closed
+                if coordinates and coordinates[0] != coordinates[-1]:
+                    coordinates.append(coordinates[0])
+
+                # Create a GeoJSON feature for the current class
+                feature = {
+                    'type': 'Feature',
+                    'properties': {'class': class_name},
+                    'geometry': {
+                        'type': 'Polygon',
+                        'coordinates': [coordinates]
+                    }
+                }
+                geojson_data['features'].append(feature)
+
+        return geojson_data

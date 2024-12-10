@@ -37,20 +37,18 @@ def machineLearning():
     Endpoint to get a Google Earth Engine image based on the region of interest (ROI).
     """
     data = request.json
-    class_data = data['classGeojson']
     roi_data = data['roi']
-    print(data)
     image = session.get('image')
     if not image.img_array:
         roi = roi_data['geometry']['coordinates'][0] 
         polygon_array = SubPolygon(roi)
         image.roi_array = polygon_array.getSubPolygons()
-    image_mask = ImageMask(bands=image.bands, start_date=image.start_date, end_date=image.end_date)
-    image_mask.setClassData(class_data)
+    image_mask = ImageMask(bands=image.bands, scale = image.scale, start_date=image.start_date, end_date=image.end_date)
+    image_mask.setClassData(data)
     session['image_mask'] = image_mask
     return jsonify({"status": "Class data set."}), 200
 
-@api_bp.route('/machine_learning_stream', methods=['GET'])
+@api_bp.route('/machine_learning_stream')
 def machineLearningStream():
     """
     Endpoint to get a Google Earth Engine image based on the region of interest (ROI).
@@ -65,21 +63,35 @@ def machineLearningStream():
         print("Starting stream...")
         while True:
             message = mask_queue.get()
-            print(message)
             if message['status'] == "Completed":
                 yield f"data: {json.dumps(message)}\n\n"
                 print("Data sent, Closing connection")
                 break
+            print(message)
             yield f"data: {json.dumps(message)}\n\n"
-    image_thread = ImageThread(img_object=image, mask_object=image_mask, queue=mask_queue)
-    if not image.img_array:
-        function = 'ml'
+    image_thread = ImageThread(img_object=image, object=image_mask, queue=mask_queue)
+    if len(image.img_array) == 0:
+        function = 'image_ml'
         items = image.roi_array
     else:
-        function = 'image_ml'
+        function == 'ml'
         items = image.img_array
     threading.Thread(target=image_thread.thread_pool, args=(50, items, function)).start()
     return Response(stream_with_context(generate()), content_type='text/event-stream')
+
+# @api_bp.route('/deep_learning', methods=['POST'])
+# def deepLearning():
+#     data = request.json
+#     roi_data = data['roi']
+#     image = session.get('image')
+#     if not image.img_array:
+#         roi = roi_data['geometry']['coordinates'][0] 
+#         polygon_array = SubPolygon(roi)
+#         image.roi_array = polygon_array.getSubPolygons()
+#     image_mask = ImageMask(bands=image.bands, scale = image.scale, start_date=image.start_date, end_date=image.end_date)
+#     image_mask.setClassData(data)
+#     session['image_mask'] = image_mask
+#     return jsonify({"status": "DL data set."}), 200
 
 
 @api_bp.route('/deep_learning', methods=['POST'])

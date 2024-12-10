@@ -65,7 +65,6 @@ class GeeImage:
         sentinal_bounds = image_clipped.geometry().bounds().getInfo()
         img_array = geemap.ee_to_numpy(image_clipped, region=roi, bands=self.bands, scale=self.scale)
         normalized_image = (img_array - np.min(img_array)) / (np.max(img_array) - np.min(img_array))
-        geoJson = self.toGeojson(coord)
         self.img_array.append((img_array, sentinal_bounds['coordinates'][0]))
         return (img_array, sentinal_bounds['coordinates'][0])
 

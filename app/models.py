@@ -10,7 +10,7 @@ from app.deeplearning import DeepLearning
 
 class Models:
     def __init__(self,  img_array, image_mask_obj=None) -> None:
-        self.img_array = np.array(img_array)
+        self.img_array = img_array
         self.bands = image_mask_obj.bands
         self.scale = image_mask_obj.scale
         self.start_date = image_mask_obj.start_date
@@ -23,6 +23,7 @@ class Models:
         self.threshold = image_mask_obj.threshold
         self.X_train = image_mask_obj.X_train
         self.y_train = image_mask_obj.y_train
+        print(self.img_array.shape)
         reshaped_array = self.img_array.reshape((-1, 3))
         self.non_zero_mask = (reshaped_array != 0).any(axis=1)
         self.non_zero_img_array = reshaped_array[self.non_zero_mask]
