@@ -9,6 +9,7 @@ import json, threading
 from queue import Queue
 from app.threading import ImageThread
 from app.subpolygon import SubPolygon
+from app.sam_class import SAM2
 # from keras import models
 # from keras import preprocessing
 
@@ -123,6 +124,15 @@ def deepLearning():
     image_thread = ImageThread(helper=image_mask, queue=mask_queue)
     threading.Thread(target=image_thread.thread_pool, args=(50, image.img_array, True)).start()
     return Response(generate(), mimetype='text/event-stream')
+
+@api_bp.route("/sam2", methods=['POST'])
+def sam2():
+    sam_data = request.json
+    image = session.get(image)
+    img_array = image.getImage(image.roi)
+    sam = SAM2()
+    sam.predict(image, )
+
 
 
 

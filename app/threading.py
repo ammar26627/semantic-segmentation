@@ -48,6 +48,7 @@ class ImageThread:
         dl = self.object
         dl.unet(image[0])
         mask_pngs = dl.getColoredMask()
+        mask_geojson = self.generate_geojson_from_dict(mask_pngs, self.color_to_normalized(), )
         masks_base_64 = {}
         for key, mask_png in mask_pngs.items():
             self.area[key] += get_area(mask_png, 30)
